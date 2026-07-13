@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Panel de Señal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Big+Shoulders+Text:wght@500;700;900&display=swap');
+
+  :root{
+    --bg:#1a1815;
+    --bg-panel:#221f1a;
+    --bg-plate:#2a2620;
+    --bevel-lo: #0f0d0b;
+    --bevel-hi: #3a352c;
+    --cream:#e8dcc4;
+    --amber:#e0a84a;
+    --amber-dim:#8a6a35;
+    --teal:#4a9b8e;
+    --teal-dim:#2c5c53;
+    --red:#c1594d;
+    --red-dim:#6e3229;
+    --ink:#0f0d0b;
+    --muted:#9c9182;
+  }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 20% -10%, #262219 0%, transparent 55%),
+      radial-gradient(ellipse at 100% 110%, #201d18 0%, transparent 50%),
+      var(--bg);
+    color:var(--cream);
+    font-family:'IBM Plex Mono', monospace;
+    min-height:100vh;
+    padding:18px 14px 40px;
+  }
+
+  .wrap{max-width:640px; margin:0 auto;}
+
+  header{
+    display:flex; align-items:baseline; justify-content:space-between;
+    padding:4px 4px 18px;
+    border-bottom:1px solid #3a352c;
+    margin-bottom:20px;
+  }
+  header h1{
+    font-family:'Big Shoulders Text', sans-serif;
+    font-weight:900;
+    font-size:26px;
+    letter-spacing:0.5px;
+    margin:0;
+    color:var(--cream);
+    text-transform:uppercase;
+  }
+  header .sub{
+    font-size:10px;
+    color:var(--muted);
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+  }
+  header .clock{
+    font-size:11px;
+    color:var(--amber);
+    letter-spacing:1px;
+  }
+
+  .panel{
+    background:linear-gradient(180deg, var(--bg-plate), var(--bg-panel));
+    border-radius:10px;
+    border:1px solid #3a352c;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.04),
+      0 6px 16px rgba(0,0,0,0.35);
+    padding:16px 16px 14px;
+    margin-bottom:16px;
+    position:relative;
+  }
+  .panel::before{
+    content:'';
+    position:absolute; top:8px; left:8px; width:5px; height:5px; border-radius:50%;
+    background:var(--bevel-lo); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+  }
+  .panel::after{
+    content:'';
+    position:absolute; top:8px; right:8px; width:5px; height:5px; border-radius:50%;
+    background:var(--bevel-lo); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+  }
+
+  .panel-head{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:12px;
+  }
+  .panel-title{
+    font-family:'Big Shoulders Text', sans-serif;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    color:var(--cream);
+  }
+  .panel-title .idx{
+    color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:500;
+    font-size:11px;
+    margin-right:8px;
+  }
+
+  .status-dot{
+    width:9px; height:9px; border-radius:50%;
+    display:inline-block;
+    box-shadow:0 0 6px currentColor;
+  }
+  .status-dot.ok{color:var(--teal); background:var(--teal);}
+  .status-dot.warn{color:var(--amber); background:var(--amber);}
+  .status-dot.off{color:var(--red); background:var(--red);}
+  .status-dot.idle{color:var(--muted); background:var(--muted); box-shadow:none;}
+
+  .gauge-row{
+    display:flex; align-items:center; gap:16px;
+    margin-bottom:12px;
+  }
+
+  .bars{
+    display:flex; align-items:flex-end; gap:3px; height:34px;
+  }
+  .bars .b{
+    width:8px; background:var(--bevel-lo);
+    border-radius:2px 2px 0 0;
+    transition:background 0.4s ease;
+  }
+  .bars .b:nth-child(1){height:20%;}
+  .bars .b:nth-child(2){height:40%;}
+  .bars .b:nth-child(3){height:60%;}
+  .bars .b:nth-child(4){height:80%;}
+  .bars .b:nth-child(5){height:100%;}
+  .bars .b.lit{background:var(--teal); box-shadow:0 0 6px var(--teal-dim);}
+  .bars .b.lit.warn{background:var(--amber); box-shadow:0 0 6px var(--amber-dim);}
+  .bars .b.lit.weak{background:var(--red); box-shadow:0 0 6px var(--red-dim);}
+
+  .readout{
+    flex:1;
+    background:var(--ink);
+    border-radius:6px;
+    padding:8px 12px;
+    box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);
+  }
+  .readout .big{
+    font-size:20px; font-weight:600; color:var(--amber);
+    letter-spacing:0.5px;
+  }
+  .readout .lbl{
+    font-size:9px; color:var(--muted); letter-spacing:1px; text-transform:uppercase;
+  }
+
+  .metrics{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+    margin-bottom:8px;
+  }
+  .metric{
+    background:var(--ink);
+    border-radius:6px; padding:7px 8px;
+    box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);
+  }
+  .metric .v{font-size:14px; color:var(--cream); font-weight:600;}
+  .metric .k{font-size:8.5px; color:var(--muted); letter-spacing:0.8px; text-transform:uppercase; margin-top:2px;}
+
+  .note{
+    font-size:10.5px; color:var(--muted); line-height:1.5; margin-top:10px;
+    border-top:1px dashed #3a352c; padding-top:8px;
+  }
+  .note b{color:var(--amber-dim);}
+
+  button{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600; font-size:11.5px; letter-spacing:0.8px; text-transform:uppercase;
+    background:linear-gradient(180deg, #3a352c, #2a2620);
+    color:var(--cream);
+    border:1px solid #4a4436;
+    border-radius:6px;
+    padding:9px 14px;
+    cursor:pointer;
+    box-shadow:0 2px 0 var(--bevel-lo), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  button:active{transform:translateY(1px); box-shadow:0 1px 0 var(--bevel-lo);}
+  button:disabled{opacity:0.4; cursor:not-allowed;}
+
+  .device-list{margin-top:10px;}
+  .noise-wrap{display:flex; align-items:center; gap:18px; margin-bottom:12px;}
+  .noise-ring-holder{position:relative; width:120px; height:120px; min-width:120px;}
+  .noise-ring-holder svg{transform:rotate(-90deg);}
+  .noise-ring-bg{fill:none; stroke:var(--ink); stroke-width:12;}
+  .noise-ring-fg{fill:none; stroke:var(--teal); stroke-width:12; stroke-linecap:round; transition:stroke-dashoffset 0.15s linear, stroke 0.3s ease;}
+  .noise-center{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .noise-center .db{font-size:22px; font-weight:600; color:var(--cream);}
+  .noise-center .unit{font-size:9px; color:var(--muted); letter-spacing:1px; text-transform:uppercase;}
+  .noise-info{flex:1; min-width:0;}
+  .noise-info .label{font-size:15px; font-weight:600; color:var(--amber); margin-bottom:4px;}
+  .noise-info .peak{font-size:11px; color:var(--muted);}
+  select.mic-select{
+    width:100%; margin-top:10px; padding:8px 10px;
+    background:var(--ink); color:var(--cream); border:1px solid #3a352c; border-radius:6px;
+    font-family:'IBM Plex Mono', monospace; font-size:11.5px;
+  }
+
+  .device-card{
+    background:var(--ink); border-radius:8px; padding:12px; margin-bottom:6px;
+  }
+  .device-card .name{color:var(--cream); font-size:13px; font-weight:600; margin-bottom:8px;}
+  .device-card .rows{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .device-card .field{background:var(--bg-plate); border-radius:6px; padding:6px 8px;}
+  .device-card .field .v{font-size:13px; color:var(--teal); font-weight:600;}
+  .device-card .field .v.warn{color:var(--amber);}
+  .device-card .field .v.off{color:var(--muted); font-weight:400; font-size:11px;}
+  .device-card .field .k{font-size:8.5px; color:var(--muted); letter-spacing:0.7px; text-transform:uppercase; margin-top:1px;}
+  .battery-bar{height:5px; border-radius:3px; background:var(--bevel-lo); margin-top:5px; overflow:hidden;}
+  .battery-bar .fill{height:100%; background:var(--teal); border-radius:3px;}
+  .battery-bar .fill.low{background:var(--red);}
+  .battery-bar .fill.mid{background:var(--amber);}
+
+  .progress{
+    height:8px; border-radius:4px; background:var(--ink);
+    box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);
+    overflow:hidden; margin-top:6px;
+  }
+  .progress .fill{
+    height:100%; width:0%; border-radius:4px;
+    background:linear-gradient(90deg, var(--teal-dim), var(--teal));
+    transition:width 0.15s linear;
+  }
+  .progress .fill.up{
+    background:linear-gradient(90deg, var(--amber-dim), var(--amber));
+  }
+  /* ---------- CONSOLA CENTRAL (estilo nave espacial) ---------- */
+  .console-panel{
+    background:
+      repeating-linear-gradient(115deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 5px),
+      linear-gradient(180deg, #24211b, #1c1a15);
+  }
+  .console-circle{
+    position:relative;
+    width:264px; height:264px;
+    margin:14px auto 10px;
+  }
+  .console-ring{
+    position:absolute; inset:0; border-radius:50%;
+    border:1px dashed #3a352c;
+  }
+  .console-power{
+    position:absolute; top:50%; left:50%;
+    width:104px; height:104px; margin:-52px 0 0 -52px;
+    border-radius:50%;
+    background: radial-gradient(circle at 32% 28%, #3c362c 0%, #17140f 72%);
+    border:2px solid #4a4436;
+    box-shadow:
+      0 8px 18px rgba(0,0,0,0.6),
+      inset 0 2px 5px rgba(255,255,255,0.07),
+      inset 0 -6px 10px rgba(0,0,0,0.4),
+      0 0 0 6px #1a1815, 0 0 0 7px #4a4436;
+    color:var(--amber);
+    font-family:'Big Shoulders Text', sans-serif; font-weight:900;
+    font-size:12px; letter-spacing:0.8px; text-transform:uppercase; line-height:1.2;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    padding:6px;
+    transition:box-shadow 0.15s ease, filter 0.15s ease;
+  }
+  .console-power:active{ filter:brightness(0.85); }
+  .console-power.engaged{
+    color:var(--teal);
+    box-shadow:
+      0 8px 18px rgba(0,0,0,0.6),
+      inset 0 2px 5px rgba(255,255,255,0.07),
+      0 0 0 6px #1a1815, 0 0 0 7px var(--teal-dim),
+      0 0 22px var(--teal-dim);
+  }
+  .console-node{
+    position:absolute; top:50%; left:50%;
+    width:60px; height:60px; margin:-30px 0 0 -30px;
+    transform: rotate(var(--a)) translate(114px) rotate(calc(-1 * var(--a)));
+    border-radius:50%;
+    background: radial-gradient(circle at 30% 28%, #33302a, #1c1a15 75%);
+    border:1px solid #4a4436;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    color:var(--cream); font-family:'IBM Plex Mono', monospace;
+    font-size:7.5px; letter-spacing:0.4px; text-transform:uppercase;
+    cursor:pointer;
+  }
+  .console-node .node-ico{ font-size:15px; line-height:1; margin-bottom:1px; filter:grayscale(0.15); }
+  .node-led{
+    position:absolute; top:5px; right:5px; width:6px; height:6px; border-radius:50%;
+    background:var(--muted); transition:background 0.3s, box-shadow 0.3s;
+  }
+  .node-led.ok{ background:var(--teal); box-shadow:0 0 6px var(--teal-dim); }
+  .node-led.warn{ background:var(--amber); box-shadow:0 0 6px var(--amber-dim); }
+  .node-led.off{ background:var(--red); box-shadow:0 0 6px var(--red-dim); }
+
+  .scope-toggle{
+    display:flex; gap:6px; margin-bottom:12px;
+  }
+  .scope-toggle button{
+    flex:1; padding:8px 6px; font-size:10.5px;
+    background:var(--ink); border:1px solid #3a352c; box-shadow:none;
+  }
+  .scope-toggle button.active{
+    background:linear-gradient(180deg, var(--teal-dim), #1c3d37);
+    border-color:var(--teal-dim); color:var(--cream);
+  }
+
+  .compass-wrap{display:flex; align-items:center; gap:18px; margin-bottom:12px;}
+  .compass-circle{
+    width:130px; height:130px; min-width:130px; border-radius:50%;
+    position:relative; background:var(--ink);
+    box-shadow:inset 0 2px 8px rgba(0,0,0,0.6), 0 0 0 1px #3a352c;
+  }
+  .dial{position:absolute; inset:0; transition:transform 0.2s linear;}
+  .tick{position:absolute; font-size:10px; color:var(--muted); font-weight:600;}
+  .tick.n{top:6px; left:50%; transform:translateX(-50%); color:var(--amber);}
+  .tick.e{right:7px; top:50%; transform:translateY(-50%);}
+  .tick.s{bottom:6px; left:50%; transform:translateX(-50%);}
+  .tick.o{left:7px; top:50%; transform:translateY(-50%);}
+  .needle{
+    position:absolute; left:50%; top:50%; width:4px; height:46px;
+    margin-left:-2px; margin-top:-46px; transform-origin:50% 100%;
+    background:linear-gradient(var(--teal), rgba(74,155,142,0));
+    border-radius:3px; transition:transform 0.2s linear, opacity 0.3s;
+  }
+  .needle::after{
+    content:''; position:absolute; top:-7px; left:50%; transform:translateX(-50%);
+    border-left:6px solid transparent; border-right:6px solid transparent;
+    border-bottom:11px solid var(--teal);
+  }
+  .needle.arrived{opacity:0.25;}
+  .you-dot{
+    position:absolute; left:50%; top:50%; width:8px; height:8px; border-radius:50%;
+    background:var(--amber); margin-left:-4px; margin-top:-4px; box-shadow:0 0 8px var(--amber-dim);
+  }
+  .compass-info{flex:1; min-width:0;}
+  .compass-info .live{font-size:22px; font-weight:600; color:var(--amber);}
+  .compass-info .live .unit{font-size:11px; color:var(--muted); font-weight:400;}
+  .compass-info .target{font-size:12px; color:var(--cream); margin-top:6px; line-height:1.5;}
+  .compass-info .target b{color:var(--teal);}
+
+  .compass-btns{display:flex; gap:8px; margin-top:4px;}
+  .compass-btns button{flex:1;}
+  .btn-secondary{
+    background:linear-gradient(180deg, #2a2620, #221f1a) !important;
+    color:var(--muted) !important;
+  }
+
+  .speed-row{margin-bottom:12px;}
+  .speed-row .head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;}
+  .speed-row .head .k{font-size:9.5px; color:var(--muted); letter-spacing:1px; text-transform:uppercase;}
+  .speed-row .head .v{font-size:16px; color:var(--cream); font-weight:600;}
+  .speed-row .head .v .unit{font-size:10px; color:var(--muted); font-weight:400; margin-left:3px;}
+
+  .radar{
+    width:34px; height:34px; border-radius:50%;
+    border:1px solid #4a4436;
+    position:relative;
+    overflow:hidden;
+    background:var(--ink);
+    flex-shrink:0;
+  }
+  .radar .sweep{
+    position:absolute; top:0; left:50%; width:50%; height:50%;
+    transform-origin:0% 100%;
+    background:conic-gradient(from 0deg, var(--teal) 0deg, transparent 60deg);
+    animation:spin 1.6s linear infinite;
+    opacity:0;
+  }
+  .radar.active .sweep{opacity:0.85;}
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  footer{
+    text-align:center; font-size:9.5px; color:var(--muted); margin-top:22px; letter-spacing:0.5px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Panel de Señal</h1>
+      <div class="sub">Monitor de conectividad · en vivo</div>
+    </div>
+    <div class="clock" id="clock">--:--:--</div>
+  </header>
+
+  <!-- CONSOLA CENTRAL -->
+  <div class="panel console-panel">
+    <div class="panel-head">
+      <div class="panel-title">Consola Central</div>
+    </div>
+
+    <div class="console-circle">
+      <div class="console-ring"></div>
+
+      <button class="console-power" id="console-power">INICIAR<br>TODO</button>
+
+      <button class="console-node" id="node-red" style="--a:-90deg;" title="Red">
+        <span class="node-led" id="led-red"></span>
+        <span class="node-ico">📶</span>
+        <span class="node-txt">Red</span>
+      </button>
+      <button class="console-node" id="node-compass" style="--a:-38.6deg;" title="Brújula">
+        <span class="node-led" id="led-compass"></span>
+        <span class="node-ico">🧭</span>
+        <span class="node-txt">Brújula</span>
+      </button>
+      <button class="console-node" id="node-speed" style="--a:12.9deg;" title="Velocidad">
+        <span class="node-led" id="led-speed"></span>
+        <span class="node-ico">⚡</span>
+        <span class="node-txt">Vel.</span>
+      </button>
+      <button class="console-node" id="node-bt" style="--a:64.3deg;" title="Bluetooth">
+        <span class="node-led" id="led-bt"></span>
+        <span class="node-ico">🔷</span>
+        <span class="node-txt">BT</span>
+      </button>
+      <button class="console-node" id="node-batt" style="--a:115.7deg;" title="Batería">
+        <span class="node-led" id="led-batt"></span>
+        <span class="node-ico">🔋</span>
+        <span class="node-txt">Batería</span>
+      </button>
+      <button class="console-node" id="node-em" style="--a:167.1deg;" title="Electromagnético">
+        <span class="node-led" id="led-em"></span>
+        <span class="node-ico">🧲</span>
+        <span class="node-txt">EM</span>
+      </button>
+      <button class="console-node" id="node-noise" style="--a:218.6deg;" title="Ruido">
+        <span class="node-led" id="led-noise"></span>
+        <span class="node-ico">🎙️</span>
+        <span class="node-txt">Ruido</span>
+      </button>
+    </div>
+
+    <div class="note" id="console-note">Tocá un nodo para ir directo a ese sensor y activarlo. El botón central enciende todo lo que se puede iniciar sin elegir nada a mano — Bluetooth y Ruido siempre te van a pedir elegir el dispositivo aparte.</div>
+  </div>
+
+  <!-- PERMISOS -->
+  <div class="panel" id="perm-panel">
+    <div class="panel-head">
+      <div class="panel-title">Permisos del equipo</div>
+      <span class="status-dot idle" id="perm-dot"></span>
+    </div>
+    <div class="note" id="perm-note">Esta app necesita acceso a tu ubicación y a la orientación del teléfono para la brújula de señal. Bluetooth se pide aparte, cuando busques un dispositivo. Nada se envía a ningún servidor: todo queda en tu teléfono.</div>
+    <div class="metrics" style="margin-top:10px;">
+      <div class="metric"><div class="v" id="diag-protocol" style="font-size:11px;">—</div><div class="k">protocolo</div></div>
+      <div class="metric"><div class="v" id="diag-secure" style="font-size:11px;">—</div><div class="k">contexto seguro</div></div>
+      <div class="metric"><div class="v" id="diag-geo" style="font-size:11px;">—</div><div class="k">API geo</div></div>
+    </div>
+    <button id="perm-btn" style="margin-top:10px; width:100%;">Dar permisos ahora</button>
+  </div>
+
+  <!-- RED (WIFI / DATOS) -->
+  <div class="panel" id="panel-net">
+    <div class="panel-head">
+      <div class="panel-title"><span class="idx">01</span>Red — Wifi / Datos</div>
+      <span class="status-dot idle" id="net-dot"></span>
+    </div>
+
+    <div class="gauge-row">
+      <div class="bars" id="net-bars">
+        <div class="b"></div><div class="b"></div><div class="b"></div><div class="b"></div><div class="b"></div>
+      </div>
+      <div class="readout">
+        <div class="big" id="net-type">—</div>
+        <div class="lbl">tipo de conexión</div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><div class="v" id="net-downlink">—</div><div class="k">Mbps est.</div></div>
+      <div class="metric"><div class="v" id="net-rtt">—</div><div class="k">RTT ms</div></div>
+      <div class="metric"><div class="v" id="net-save">—</div><div class="k">ahorro datos</div></div>
+    </div>
+
+    <div class="note" id="net-note">Detectando compatibilidad del navegador…</div>
+  </div>
+
+  <!-- BRÚJULA DE SEÑAL (GPS) -->
+  <div class="panel" id="panel-compass">
+    <div class="panel-head">
+      <div class="panel-title"><span class="idx">02</span>Brújula de Señal</div>
+      <span class="status-dot idle" id="compass-dot"></span>
+    </div>
+
+    <div class="scope-toggle">
+      <button class="active" id="scope-movil">Datos móviles</button>
+      <button id="scope-wifi">Wifi</button>
+    </div>
+
+    <div class="compass-wrap">
+      <div class="compass-circle">
+        <div class="dial" id="compass-dial">
+          <span class="tick n">N</span>
+          <span class="tick e">E</span>
+          <span class="tick s">S</span>
+          <span class="tick o">O</span>
+        </div>
+        <div class="needle" id="compass-needle"></div>
+        <div class="you-dot"></div>
+      </div>
+      <div class="compass-info">
+        <div class="live" id="compass-live">—<span class="unit">Mbps ahora</span></div>
+        <div class="target" id="compass-target">Presioná «Iniciar mapeo» y caminá despacio por la casa.</div>
+        <div class="target" id="compass-accuracy" style="margin-top:4px; font-size:10.5px; color:var(--muted);"></div>
+      </div>
+    </div>
+
+    <div class="compass-btns" id="router-btns" style="display:none;">
+      <button id="mark-router-btn">📍 Marcar router acá</button>
+      <button id="forget-router-btn" class="btn-secondary">Olvidar</button>
+    </div>
+
+    <div class="compass-btns">
+      <button id="compass-start">Iniciar mapeo</button>
+      <button id="compass-reset" class="btn-secondary">Reiniciar</button>
+    </div>
+
+    <div class="note" id="compass-note">Elegí arriba qué red estás usando ahora mismo. La app mide tu velocidad real cada pocos segundos en cada punto y la flecha señala hacia el mejor lugar detectado en este recorrido. Necesita permiso de ubicación y, en iPhone, de orientación. Consume algo de datos si estás midiendo datos móviles.</div>
+  </div>
+
+  <!-- TEST DE VELOCIDAD REAL -->
+  <div class="panel" id="panel-speed">
+    <div class="panel-head">
+      <div class="panel-title"><span class="idx">03</span>Test de Velocidad Real</div>
+      <span class="status-dot idle" id="speed-dot"></span>
+    </div>
+
+    <div class="speed-row">
+      <div class="head"><span class="k">Bajada <span id="speed-down-phase" style="color:var(--teal);"></span></span><span class="v" id="speed-down">—<span class="unit">Mbps</span></span></div>
+      <div class="progress"><div class="fill" id="speed-down-fill"></div></div>
+    </div>
+
+    <div class="speed-row">
+      <div class="head"><span class="k">Subida <span id="speed-up-phase" style="color:var(--amber);"></span></span><span class="v" id="speed-up">—<span class="unit">Mbps</span></span></div>
+      <div class="progress"><div class="fill up" id="speed-up-fill"></div></div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><div class="v" id="speed-datamb">0</div><div class="k">MB transferidos</div></div>
+      <div class="metric"><div class="v" id="speed-conns">4</div><div class="k">conexiones paralelas</div></div>
+      <div class="metric"><div class="v" id="speed-elapsed">0s</div><div class="k">tiempo</div></div>
+    </div>
+
+    <button id="speed-btn">Iniciar test de velocidad (10s + 10s)</button>
+
+    <div class="note" id="speed-note">Mide 10 segundos de bajada y 10 de subida, transfiriendo datos reales con 4 conexiones simultáneas (igual que Speedtest/fast.com), descartando el arranque inicial para dar un número estable. El consumo de datos depende de tu velocidad: puede ir de unos MB a 100+ MB en conexiones muy rápidas.</div>
+  </div>
+
+  <!-- BLUETOOTH -->
+  <div class="panel" id="panel-bt">
+    <div class="panel-head">
+      <div class="panel-title"><span class="idx">04</span>Bluetooth</div>
+      <span class="status-dot idle" id="bt-dot"></span>
+    </div>
+
+    <div class="gauge-row">
+      <div class="radar" id="bt-radar"><div class="sweep"></div></div>
+      <div class="readout">
+        <div class="big" id="bt-status">Sin escanear</div>
+        <div class="lbl">estado</div>
+      </div>
+    </div>
+
+    <button id="bt-scan-btn">Buscar dispositivo cercano</button>
+    <button id="bt-watch-btn" style="margin-left:8px; display:none;">Ver señal en vivo (RSSI)</button>
+
+    <div class="device-list" id="bt-devices"></div>
+
+    <div class="note" id="bt-note">Bluetooth vía navegador requiere permiso explícito por dispositivo y solo funciona en Chrome/Edge (Android o escritorio). No hay escaneo pasivo por seguridad.</div>
+  </div>
+
+  <!-- BATERÍA DEL EQUIPO -->
+  <div class="panel" id="panel-batt">
+    <div class="panel-head">
+      <div class="panel-title"><span class="idx">05</span>Batería del Equipo</div>
+      <span class="status-dot idle" id="batt-dot"></span>
+    </div>
+
+    <div class="gauge-row">
+      <div class="progress" style="flex:1; height:22px; border-radius:5px;">
+        <div class="fill" id="batt-fill" style="height:100%; border-radius:5px;"></div>
+      </div>
+      <div class="readout" style="flex:0 0 auto; min-width:70px; text-align:center;">
+        <div class="big" id="batt-level">—</div>
+        <div class="lbl">nivel</div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><div class="v" id="batt-status">—</div><div class="k">estado</div></div>
+      <div class="metric"><div class="v" id="batt-time">—</div><div class="k">tiempo est.</div></div>
+    </div>
+
+    <div class="note" id="batt-note">Detectando compatibilidad…</div>
+  </div>
+
+  <!-- DETECTOR ELECTROMAGNÉTICO -->
+  <div class="panel" id="panel-em">
+    <div class="panel-head">
+      <div class="panel-title"><span class="idx">06</span>Detector Electromagnético</div>
+      <span class="status-dot idle" id="em-dot"></span>
+    </div>
+
+    <div class="gauge-row">
+      <div class="progress" style="flex:1; height:22px; border-radius:5px;">
+        <div class="fill" id="em-fill" style="height:100%; border-radius:5px;"></div>
+      </div>
+      <div class="readout" style="flex:0 0 auto; min-width:80px; text-align:center;">
+        <div class="big" id="em-value">—</div>
+        <div class="lbl">µT</div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><div class="v" id="em-baseline">—</div><div class="k">línea base µT</div></div>
+      <div class="metric"><div class="v" id="em-deviation">—</div><div class="k">desvío</div></div>
+    </div>
+
+    <button id="em-start-btn">Iniciar detector</button>
+
+    <div class="note" id="em-note">Mide el campo magnético crudo del teléfono. El campo de la Tierra ronda 25-65 µT y es bastante estable; si un metal grande, electrónica o un cable de alta tensión distorsiona la lectura, te avisa. Es una señal aproximada, no localiza el objeto. Solo funciona en Chrome para Android (Generic Sensor API).</div>
+  </div>
+
+  <!-- MEDIDOR DE RUIDO AMBIENTE -->
+  <div class="panel" id="panel-noise">
+    <div class="panel-head">
+      <div class="panel-title"><span class="idx">07</span>Ruido Ambiente</div>
+      <span class="status-dot idle" id="noise-dot"></span>
+    </div>
+
+    <div class="noise-wrap">
+      <div class="noise-ring-holder">
+        <svg viewBox="0 0 120 120" width="120" height="120">
+          <circle class="noise-ring-bg" cx="60" cy="60" r="52"></circle>
+          <circle class="noise-ring-fg" id="noise-ring" cx="60" cy="60" r="52"
+            stroke-dasharray="326.7" stroke-dashoffset="326.7"></circle>
+        </svg>
+        <div class="noise-center">
+          <div class="db" id="noise-db">—</div>
+          <div class="unit">dB rel.</div>
+        </div>
+      </div>
+      <div class="noise-info">
+        <div class="label" id="noise-label">Sin medir</div>
+        <div class="peak" id="noise-peak">Pico: —</div>
+      </div>
+    </div>
+
+    <button id="noise-start-btn">Activar micrófono</button>
+
+    <select class="mic-select" id="mic-select" style="display:none;"></select>
+
+    <div class="note" id="noise-note">Nivel <b>relativo</b> de sonido, no decibeles SPL calibrados (eso requiere hardware específico). Sirve para comparar "acá hay más o menos ruido que allá". El micrófono solo se activa mientras esta sección está encendida — nada se graba ni se envía a ningún lado, todo el análisis pasa en tu teléfono.</div>
+  </div>
+
+  <footer>
+    Los navegadores no exponen dBm real de wifi/datos móviles — estos valores son estimaciones basadas en velocidad y latencia reportadas por el sistema.
+  </footer>
+
+</div>
+
+<script>
+// ---------- RELOJ ----------
+function tickClock(){
+  const d = new Date();
+  document.getElementById('clock').textContent = d.toLocaleTimeString('es-AR', {hour12:false});
+}
+setInterval(tickClock, 1000); tickClock();
+
+// ---------- RED (Network Information API) ----------
+const netDot = document.getElementById('net-dot');
+const netBars = document.querySelectorAll('#net-bars .b');
+const netType = document.getElementById('net-type');
+const netDownlink = document.getElementById('net-downlink');
+const netRtt = document.getElementById('net-rtt');
+const netSave = document.getElementById('net-save');
+const netNote = document.getElementById('net-note');
+
+function classForQuality(level){ // 0-5
+  if(level >= 4) return '';
+  if(level >= 2) return 'warn';
+  return 'weak';
+}
+
+function renderBars(level, quality){
+  netBars.forEach((b, i) => {
+    b.classList.remove('lit','warn','weak');
+    if(i < level){
+      b.classList.add('lit');
+      if(quality) b.classList.add(quality);
+    }
+  });
+}
+
+function updateNetwork(){
+  if(!navigator.onLine){
+    netDot.className = 'status-dot off';
+    netType.textContent = 'SIN CONEXIÓN';
+    renderBars(0);
+    netDownlink.textContent = '—';
+    netRtt.textContent = '—';
+    netSave.textContent = '—';
+    netNote.innerHTML = '<b>Offline.</b> El dispositivo no reporta ninguna red activa.';
+    return;
+  }
+
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+
+  if(!conn){
+    netDot.className = 'status-dot ok';
+    netType.textContent = 'CONECTADO';
+    renderBars(3, 'warn');
+    netDownlink.textContent = '—';
+    netRtt.textContent = '—';
+    netSave.textContent = '—';
+    netNote.innerHTML = 'Tu navegador (probablemente Safari/iOS) no expone detalles de red. Solo se sabe que hay conexión activa.';
+    return;
+  }
+
+  const type = conn.type; // wifi, cellular, none, unknown...
+  const effectiveType = conn.effectiveType; // slow-2g, 2g, 3g, 4g
+  const downlink = conn.downlink; // Mbps estimado
+  const rtt = conn.rtt; // ms
+  const saveData = conn.saveData;
+
+  let label = type ? type.toUpperCase() : (effectiveType ? effectiveType.toUpperCase() : 'DESCONOCIDO');
+  netType.textContent = label;
+
+  // nivel de barras en base a effectiveType + downlink
+  let level = 3, quality = 'warn';
+  if(effectiveType === '4g' || downlink >= 5){ level = 5; quality = ''; }
+  else if(effectiveType === '3g' || downlink >= 1.5){ level = 3; quality = 'warn'; }
+  else if(effectiveType === '2g' || downlink >= 0.4){ level = 2; quality = 'weak'; }
+  else if(effectiveType === 'slow-2g'){ level = 1; quality = 'weak'; }
+
+  renderBars(level, quality);
+  netDot.className = 'status-dot ' + (level >= 4 ? 'ok' : level >= 2 ? 'warn' : 'off');
+
+  netDownlink.textContent = downlink !== undefined ? downlink.toFixed(1) : '—';
+  netRtt.textContent = rtt !== undefined ? Math.round(rtt) : '—';
+  netSave.textContent = saveData ? 'ON' : 'OFF';
+
+  netNote.innerHTML = `Fuente: Network Information API. <b>${effectiveType ? effectiveType.toUpperCase() : '—'}</b> efectivo. Estos valores son estimaciones del navegador, no dBm real.`;
+}
+
+if(navigator.connection){
+  navigator.connection.addEventListener('change', updateNetwork);
+}
+window.addEventListener('online', updateNetwork);
+window.addEventListener('offline', updateNetwork);
+updateNetwork();
+setInterval(updateNetwork, 4000);
+
+// ---------- BRÚJULA DE SEÑAL (GPS) ----------
+const compassDot = document.getElementById('compass-dot');
+const compassLive = document.getElementById('compass-live');
+const compassTarget = document.getElementById('compass-target');
+const compassNote = document.getElementById('compass-note');
+const compassStartBtn = document.getElementById('compass-start');
+const compassResetBtn = document.getElementById('compass-reset');
+const compassDial = document.getElementById('compass-dial');
+const compassNeedle = document.getElementById('compass-needle');
+const scopeMovilBtn = document.getElementById('scope-movil');
+const scopeWifiBtn = document.getElementById('scope-wifi');
+
+const mapping = {
+  movil: { log: [], best: null },
+  wifi: { log: [], best: null }
+};
+let activeScope = 'movil';
+let compassActive = false;
+let currentPos = null;
+let currentHeading = 0;
+let headingKnown = false;
+let watchId = null;
+let sampleTimer = null;
+let orientationHandler = null;
+
+// Ubicación real del router, marcada a mano una vez por el usuario. Se guarda
+// en localStorage porque esta app corre como sitio propio (Vercel/GitHub Pages),
+// no como vista previa embebida, así que el almacenamiento del navegador funciona normal.
+let routerLocation = null;
+try{
+  const savedRouter = localStorage.getItem('ms_router_location');
+  if(savedRouter) routerLocation = JSON.parse(savedRouter);
+}catch(e){ /* localStorage no disponible, sigue sin guardado persistente */ }
+
+const routerBtnsWrap = document.getElementById('router-btns');
+const markRouterBtn = document.getElementById('mark-router-btn');
+const forgetRouterBtn = document.getElementById('forget-router-btn');
+
+function toRad(d){ return d * Math.PI / 180; }
+function toDeg(r){ return r * 180 / Math.PI; }
+
+function bearing(lat1, lon1, lat2, lon2){
+  const dLon = toRad(lon2 - lon1);
+  const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+  const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
+function distanceMeters(lat1, lon1, lat2, lon2){
+  const R = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function compassLabel(deg){
+  const dirs = ['N','NE','E','SE','S','SO','O','NO'];
+  return dirs[Math.round(deg / 45) % 8];
+}
+
+function setScope(scope){
+  activeScope = scope;
+  scopeMovilBtn.classList.toggle('active', scope === 'movil');
+  scopeWifiBtn.classList.toggle('active', scope === 'wifi');
+  routerBtnsWrap.style.display = (scope === 'wifi') ? 'flex' : 'none';
+  forgetRouterBtn.style.display = (scope === 'wifi' && routerLocation) ? 'inline-block' : 'none';
+  compassNote.textContent = scope === 'wifi'
+    ? (routerLocation
+        ? 'Modo Wifi: la flecha apunta directo a la ubicación marcada del router. Tocá "Olvidar" si te mudaste el router de lugar.'
+        : 'Modo Wifi: pará justo al lado del router y tocá "Marcar router acá". La flecha va a apuntar directo ahí siempre, sin necesidad de caminar buscando.')
+    : 'Modo Datos móviles: no hay forma de saber dónde está la antena celular (esa información no la exponen los navegadores ni casi ningún sistema operativo), así que la flecha señala hacia el mejor punto que midas caminando por la casa.';
+  refreshCompassDisplay();
+}
+scopeMovilBtn.addEventListener('click', () => setScope('movil'));
+scopeWifiBtn.addEventListener('click', () => setScope('wifi'));
+
+markRouterBtn.addEventListener('click', () => {
+  if(!currentPos){
+    compassNote.textContent = 'Todavía no tengo tu ubicación. Tocá "Dar permisos ahora" arriba de todo, o "Iniciar mapeo" acá abajo, y volvé a intentar parado al lado del router.';
+    return;
+  }
+  routerLocation = { lat: currentPos.lat, lon: currentPos.lon, acc: currentPos.acc };
+  try{ localStorage.setItem('ms_router_location', JSON.stringify(routerLocation)); }catch(e){}
+  forgetRouterBtn.style.display = 'inline-block';
+  compassNote.innerHTML = '<b>Router marcado.</b> La flecha en modo Wifi ahora apunta directo hacia acá, sin necesidad de caminar buscando.';
+  refreshCompassDisplay();
+});
+
+forgetRouterBtn.addEventListener('click', () => {
+  routerLocation = null;
+  try{ localStorage.removeItem('ms_router_location'); }catch(e){}
+  forgetRouterBtn.style.display = 'none';
+  compassNote.textContent = 'Router olvidado. Marcalo de nuevo parado a su lado cuando quieras.';
+  refreshCompassDisplay();
+});
+
+
+async function miniSpeedTest(bytes){
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const url = `https://speed.cloudflare.com/__down?bytes=${bytes}&cachebust=${Date.now()}`;
+    const t0 = performance.now();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'arraybuffer';
+    xhr.onload = () => {
+      const elapsed = (performance.now() - t0) / 1000;
+      if(elapsed <= 0) return reject(new Error('sin datos'));
+      resolve((bytes * 8 / 1e6) / elapsed);
+    };
+    xhr.onerror = () => reject(new Error('sin red'));
+    xhr.timeout = 8000;
+    xhr.ontimeout = () => reject(new Error('timeout'));
+    xhr.send();
+  });
+}
+
+function handleOrientation(e){
+  let heading;
+  if(e.webkitCompassHeading !== undefined){
+    heading = e.webkitCompassHeading;
+  } else if(e.alpha !== null && e.alpha !== undefined){
+    heading = (360 - e.alpha) % 360;
+  }
+  if(heading !== undefined && !Number.isNaN(heading)){
+    currentHeading = heading;
+    headingKnown = true;
+  }
+}
+
+function refreshCompassDisplay(){
+  const state = mapping[activeScope];
+  const last = state.log[state.log.length - 1];
+  compassLive.innerHTML = last ? last.mbps.toFixed(1) + '<span class="unit">Mbps ahora</span>' : '—<span class="unit">Mbps ahora</span>';
+
+  const accuracyEl = document.getElementById('compass-accuracy');
+
+  // En Wifi el destino es el router marcado a mano (posición real y fija).
+  // En Datos móviles no hay forma de saber dónde está la antena, así que el
+  // destino es el mejor punto medido caminando.
+  const isWifi = (activeScope === 'wifi');
+  const target = isWifi ? routerLocation : state.best;
+  const targetHasMbps = !isWifi;
+
+  if(!currentPos || !target){
+    if(isWifi){
+      compassTarget.textContent = 'Marcá la ubicación del router (botón de arriba) parado a su lado.';
+    } else {
+      compassTarget.textContent = compassActive ? 'Buscando primera referencia GPS…' : 'Presioná «Iniciar mapeo» y caminá despacio por la casa.';
+    }
+    compassNeedle.style.opacity = '0.15';
+    if(accuracyEl) accuracyEl.textContent = currentPos ? `Precisión GPS: ±${Math.round(currentPos.acc)} m` : '';
+    return;
+  }
+
+  const dist = distanceMeters(currentPos.lat, currentPos.lon, target.lat, target.lon);
+  const brg = bearing(currentPos.lat, currentPos.lon, target.lat, target.lon);
+
+  compassDial.style.transform = `rotate(${-currentHeading}deg)`;
+
+  // El umbral de "llegaste" se adapta al error real del GPS: si el GPS tiene
+  // ±15m de margen, no tiene sentido pedir precisión de 4m.
+  const arrivalThreshold = Math.max(4, (currentPos.acc || 8) * 0.6);
+
+  if(accuracyEl){
+    const acc = Math.round(currentPos.acc || 0);
+    if(acc > 20){
+      accuracyEl.innerHTML = `⚠ Precisión GPS baja: ±${acc} m — puertas adentro puede fallar. Probá cerca de una ventana.`;
+      accuracyEl.style.color = 'var(--red)';
+    } else if(acc > 10){
+      accuracyEl.textContent = `Precisión GPS: ±${acc} m (aceptable puertas adentro)`;
+      accuracyEl.style.color = 'var(--amber-dim)';
+    } else {
+      accuracyEl.textContent = `Precisión GPS: ±${acc} m`;
+      accuracyEl.style.color = 'var(--muted)';
+    }
+  }
+
+  if(dist < arrivalThreshold){
+    compassNeedle.classList.add('arrived');
+    compassNeedle.style.opacity = '';
+    compassTarget.innerHTML = isWifi
+      ? `Estás al lado del <b>router</b>.`
+      : `Estás en el <b>mejor punto</b> detectado (${target.mbps.toFixed(1)} Mbps).`;
+  } else {
+    compassNeedle.classList.remove('arrived');
+    compassNeedle.style.opacity = '1';
+    compassNeedle.style.transform = `rotate(${brg - currentHeading}deg)`;
+    compassTarget.innerHTML = isWifi
+      ? `El <b>router</b> está a ~${Math.round(dist)} m hacia el ${compassLabel(brg)}.`
+      : `Mejor punto: <b>${target.mbps.toFixed(1)} Mbps</b> a ~${Math.round(dist)} m hacia el ${compassLabel(brg)}.`;
+  }
+}
+
+
+function recordSample(mbps){
+  if(!currentPos) return;
+  const state = mapping[activeScope];
+  const sample = { lat: currentPos.lat, lon: currentPos.lon, mbps, t: Date.now() };
+  state.log.push(sample);
+  if(!state.best || mbps > state.best.mbps){
+    state.best = { lat: currentPos.lat, lon: currentPos.lon, mbps };
+  }
+  refreshCompassDisplay();
+}
+
+async function doSample(){
+  try{
+    const mbps = await miniSpeedTest(150000);
+    compassDot.className = 'status-dot ok';
+    recordSample(mbps);
+  }catch(err){
+    const conn = navigator.connection;
+    if(conn && conn.downlink !== undefined){
+      compassDot.className = 'status-dot warn';
+      recordSample(conn.downlink);
+    } else {
+      compassDot.className = 'status-dot off';
+      compassNote.textContent = 'No se pudo medir en este punto (sin conexión momentánea). Sigue caminando, reintenta solo.';
+    }
+  }
+}
+
+async function startCompass(){
+  if(!navigator.geolocation){
+    compassNote.textContent = 'Este navegador no soporta geolocalización.';
+    return;
+  }
+
+  if(window.isSecureContext === false){
+    compassNote.textContent = 'Esta página no está en un contexto seguro (HTTPS). El navegador va a bloquear el acceso al GPS/brújula. Abrí la app desde un enlace https o subila a un hosting con HTTPS.';
+    return;
+  }
+
+  if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+    try{
+      const res = await DeviceOrientationEvent.requestPermission();
+      if(res !== 'granted'){
+        compassNote.textContent = 'Sin permiso de orientación, la flecha va a apuntar sin corregir por hacia dónde mirás el teléfono.';
+      }
+    }catch(e){ /* sigue igual */ }
+  }
+
+  orientationHandler = handleOrientation;
+  window.addEventListener('deviceorientationabsolute', orientationHandler, true);
+  window.addEventListener('deviceorientation', orientationHandler, true);
+
+  watchId = navigator.geolocation.watchPosition((pos) => {
+    currentPos = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
+    refreshCompassDisplay();
+  }, (err) => {
+    compassDot.className = 'status-dot off';
+    compassNote.textContent = `No se pudo acceder al GPS: ${err.message}. Revisá los permisos de ubicación.`;
+  }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 });
+
+  compassActive = true;
+  compassStartBtn.textContent = 'Detener mapeo';
+  compassDot.className = 'status-dot warn';
+  compassNote.textContent = 'Mapeando… caminá despacio. La flecha se va a corregir a medida que junta mediciones.';
+
+  doSample();
+  sampleTimer = setInterval(doSample, 4500);
+}
+
+function stopCompass(){
+  compassActive = false;
+  compassStartBtn.textContent = 'Iniciar mapeo';
+  compassDot.className = 'status-dot idle';
+  if(watchId !== null){ navigator.geolocation.clearWatch(watchId); watchId = null; }
+  if(sampleTimer){ clearInterval(sampleTimer); sampleTimer = null; }
+  if(orientationHandler){
+    window.removeEventListener('deviceorientationabsolute', orientationHandler, true);
+    window.removeEventListener('deviceorientation', orientationHandler, true);
+    orientationHandler = null;
+  }
+  compassNote.textContent = 'Mapeo detenido. Los puntos ya medidos se mantienen — presioná «Iniciar mapeo» para seguir sumando.';
+}
+
+compassStartBtn.addEventListener('click', () => {
+  compassActive ? stopCompass() : startCompass();
+});
+
+compassResetBtn.addEventListener('click', () => {
+  mapping[activeScope].log = [];
+  mapping[activeScope].best = null;
+  refreshCompassDisplay();
+  compassNote.textContent = `Recorrido de "${activeScope === 'movil' ? 'Datos móviles' : 'Wifi'}" reiniciado.`;
+});
+
+refreshCompassDisplay();
+
+// ---------- PERMISOS ----------
+const permBtn = document.getElementById('perm-btn');
+const permDot = document.getElementById('perm-dot');
+const permNote = document.getElementById('perm-note');
+
+document.getElementById('diag-protocol').textContent = location.protocol;
+document.getElementById('diag-secure').textContent = window.isSecureContext ? 'sí' : 'NO';
+document.getElementById('diag-geo').textContent = navigator.geolocation ? 'disponible' : 'ausente';
+if(!window.isSecureContext){
+  permDot.className = 'status-dot off';
+  permNote.innerHTML = `Estás en <b>${location.protocol}</b> sin contexto seguro. Por eso el navegador va a bloquear GPS/brújula sin mostrarte ni siquiera el cartel de permiso. Necesitás abrir esta página vía <b>https://</b> — ver instrucciones abajo del botón.`;
+}
+
+async function checkPermissionsState(){
+  if(navigator.permissions && navigator.permissions.query){
+    try{
+      const geoPerm = await navigator.permissions.query({ name: 'geolocation' });
+      if(geoPerm.state === 'granted'){
+        permDot.className = 'status-dot ok';
+        permNote.textContent = 'Ubicación ya autorizada. Tocá el botón igual si querés confirmar también la orientación (brújula).';
+      } else if(geoPerm.state === 'denied'){
+        permDot.className = 'status-dot off';
+        permNote.textContent = 'Ubicación bloqueada para este sitio. Entrá a los ajustes del navegador/sistema y habilitala manualmente.';
+      }
+    }catch(e){ /* algunos navegadores no soportan consultar este permiso */ }
+  }
+}
+checkPermissionsState();
+
+permBtn.addEventListener('click', async () => {
+  permDot.className = 'status-dot warn';
+  permNote.textContent = 'Pidiendo permisos… puede aparecer un cartel del sistema, tocá "Permitir".';
+  window.__permT0 = performance.now();
+
+  let geoOk = false;
+  let oriOk = true;
+  let geoErrCode = null;
+  let geoErrInstant = false;
+
+  try{
+    const t0 = performance.now();
+    const pos = await new Promise((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 })
+    );
+    currentPos = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
+    geoOk = true;
+  }catch(e){
+    geoOk = false;
+    geoErrCode = e.code;
+    // Si falla en menos de ~300ms, nunca llegó a mostrarse un cartel del sistema:
+    // el navegador/iframe está bloqueando el permiso de entrada, no fue un rechazo del usuario.
+    geoErrInstant = (performance.now() - (window.__permT0 || performance.now())) < 300;
+  }
+
+  if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+    try{
+      const res = await DeviceOrientationEvent.requestPermission();
+      oriOk = (res === 'granted');
+    }catch(e){
+      oriOk = false;
+    }
+  }
+
+  if(geoOk && oriOk){
+    permDot.className = 'status-dot ok';
+    permNote.textContent = 'Listo: ubicación y orientación autorizadas. Ya podés usar la brújula de señal. Bluetooth te lo pide aparte, más abajo, cuando busques un dispositivo.';
+  } else if(!geoOk){
+    permDot.className = 'status-dot off';
+    if(geoErrCode === 1 && geoErrInstant){
+      permNote.innerHTML = '<b>No apareció ningún cartel del sistema</b> — señal de que esta vista previa está bloqueando el permiso antes de preguntarte. Abrí el archivo directamente en Chrome o Safari de tu teléfono (no dentro de la vista previa de Claude) y probá ahí.';
+    } else if(geoErrCode === 1){
+      permNote.textContent = 'Rechazaste el permiso de ubicación (o quedó bloqueado de una vez anterior). Entrá a Ajustes del navegador → Permisos del sitio → Ubicación, y ponelo en "Permitir".';
+    } else if(geoErrCode === 2){
+      permNote.textContent = 'El GPS no pudo obtener tu posición ahora mismo. Probá salir a un lugar más abierto o activar la ubicación del sistema en tu teléfono.';
+    } else if(geoErrCode === 3){
+      permNote.textContent = 'Se agotó el tiempo de espera buscando el GPS. Reintentá; a veces el primer intento tarda más.';
+    } else {
+      permNote.textContent = 'No se pudo obtener la ubicación. Reintentá tocando el botón de nuevo.';
+    }
+  } else {
+    permDot.className = 'status-dot warn';
+    permNote.textContent = 'Ubicación autorizada, pero la orientación no. La flecha de la brújula va a funcionar sin corregirse según hacia dónde apunta el teléfono.';
+  }
+
+  refreshCompassDisplay();
+});
+
+// ---------- TEST DE VELOCIDAD REAL (10s + 10s, conexiones paralelas) ----------
+const speedDot = document.getElementById('speed-dot');
+const speedDownEl = document.getElementById('speed-down');
+const speedUpEl = document.getElementById('speed-up');
+const speedDownFill = document.getElementById('speed-down-fill');
+const speedUpFill = document.getElementById('speed-up-fill');
+const speedDownPhase = document.getElementById('speed-down-phase');
+const speedUpPhase = document.getElementById('speed-up-phase');
+const speedDataMb = document.getElementById('speed-datamb');
+const speedElapsedEl = document.getElementById('speed-elapsed');
+const speedBtn = document.getElementById('speed-btn');
+const speedNote = document.getElementById('speed-note');
+
+const SPEED_DURATION_MS = 10000;
+const SPEED_WARMUP_MS = 1500;   // se descarta para no medir el arranque lento de TCP
+const SPEED_PARALLEL = 4;
+const SPEED_DOWN_CHUNK = 25_000_000; // 25MB por conexión, se re-pide si termina antes de tiempo
+const SPEED_UP_CHUNK = 8_000_000;    // 8MB por conexión, se re-envía si termina antes de tiempo
+
+function setSpeedValue(el, mbps){
+  el.innerHTML = mbps.toFixed(1) + '<span class="unit">Mbps</span>';
+}
+
+function steadyStateMbps(samples, warmupMs){
+  const startS = samples.find(s => s.t >= warmupMs) || samples[0];
+  const endS = samples[samples.length - 1];
+  const dBytes = endS.bytes - startS.bytes;
+  const dSec = (endS.t - startS.t) / 1000;
+  if(dSec <= 0) return 0;
+  return (dBytes * 8 / 1e6) / dSec;
+}
+
+// ----- DESCARGA: N fetch en paralelo, leyendo por streams, encadenando si un chunk termina antes de tiempo -----
+async function runDownloadPhase(durationMs, parallel, onTick){
+  const controller = new AbortController();
+  let totalBytes = 0;
+  const t0 = performance.now();
+  let running = true;
+
+  async function worker(){
+    while(running && (performance.now() - t0) < durationMs){
+      try{
+        const resp = await fetch(`https://speed.cloudflare.com/__down?bytes=${SPEED_DOWN_CHUNK}&cachebust=${Math.random()}`, { signal: controller.signal });
+        const reader = resp.body.getReader();
+        while(running){
+          const { done, value } = await reader.read();
+          if(done) break;
+          totalBytes += value.length;
+          if((performance.now() - t0) >= durationMs){ try{ reader.cancel(); }catch(e){} break; }
+        }
+      }catch(e){
+        if(!running) break;
+        await new Promise(r => setTimeout(r, 150));
+      }
+    }
+  }
+
+  const samples = [{ t: 0, bytes: 0 }];
+  const tickTimer = setInterval(() => {
+    const t = performance.now() - t0;
+    samples.push({ t, bytes: totalBytes });
+    if(onTick) onTick(totalBytes, t);
+  }, 200);
+
+  const workers = Array.from({ length: parallel }, worker);
+  await new Promise(r => setTimeout(r, durationMs));
+  running = false;
+  controller.abort();
+  await Promise.allSettled(workers);
+  clearInterval(tickTimer);
+  samples.push({ t: durationMs, bytes: totalBytes });
+
+  return { mbps: steadyStateMbps(samples, SPEED_WARMUP_MS), totalBytes };
+}
+
+// ----- SUBIDA: N XHR en paralelo, encadenando blobs si terminan antes de tiempo (progreso real vía upload.onprogress) -----
+function runUploadPhase(durationMs, parallel, onTick){
+  return new Promise((resolve) => {
+    const blob = new Blob([new Uint8Array(SPEED_UP_CHUNK)]);
+    let totalBytes = 0;
+    let running = true;
+    const t0 = performance.now();
+    const xhrs = [];
+
+    function startConn(){
+      if(!running) return;
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', 'https://speed.cloudflare.com/__up', true);
+      let lastLoaded = 0;
+      xhr.upload.onprogress = (e) => {
+        totalBytes += (e.loaded - lastLoaded);
+        lastLoaded = e.loaded;
+      };
+      xhr.onloadend = () => {
+        if(running && (performance.now() - t0) < durationMs) startConn();
+      };
+      try{ xhr.send(blob); }catch(e){ /* se reintenta en el próximo tick de arranque si hace falta */ }
+      xhrs.push(xhr);
+    }
+
+    for(let i = 0; i < parallel; i++) startConn();
+
+    const samples = [{ t: 0, bytes: 0 }];
+    const tickTimer = setInterval(() => {
+      const t = performance.now() - t0;
+      samples.push({ t, bytes: totalBytes });
+      if(onTick) onTick(totalBytes, t);
+    }, 200);
+
+    setTimeout(() => {
+      running = false;
+      clearInterval(tickTimer);
+      xhrs.forEach(x => { try{ x.abort(); }catch(e){} });
+      samples.push({ t: durationMs, bytes: totalBytes });
+      resolve({ mbps: steadyStateMbps(samples, SPEED_WARMUP_MS), totalBytes });
+    }, durationMs);
+  });
+}
+
+speedBtn.addEventListener('click', async () => {
+  speedBtn.disabled = true;
+  speedDot.className = 'status-dot warn';
+  speedDownFill.style.width = '0%';
+  speedUpFill.style.width = '0%';
+  speedDownEl.innerHTML = '—<span class="unit">Mbps</span>';
+  speedUpEl.innerHTML = '—<span class="unit">Mbps</span>';
+  speedDownPhase.textContent = '';
+  speedUpPhase.textContent = '';
+  speedConns_update();
+
+  let grandTotalBytes = 0;
+
+  try{
+    // ---- fase de bajada ----
+    speedDownPhase.textContent = '(midiendo…)';
+    speedNote.textContent = 'Descargando datos reales durante 10 segundos con 4 conexiones simultáneas…';
+
+    const downResult = await runDownloadPhase(SPEED_DURATION_MS, SPEED_PARALLEL, (bytes, t) => {
+      speedDownFill.style.width = Math.min(100, (t / SPEED_DURATION_MS) * 100) + '%';
+      speedElapsedEl.textContent = Math.round(t / 1000) + 's';
+      speedDataMb.textContent = (bytes / 1e6).toFixed(1);
+      if(t > 400){
+        // velocidad instantánea aproximada para mostrar "en vivo"
+        setSpeedValue(speedDownEl, (bytes * 8 / 1e6) / (t / 1000));
+      }
+    });
+
+    grandTotalBytes += downResult.totalBytes;
+    setSpeedValue(speedDownEl, downResult.mbps);
+    speedDownFill.style.width = '100%';
+    speedDownPhase.textContent = '✓';
+
+    // ---- fase de subida ----
+    speedUpPhase.textContent = '(midiendo…)';
+    speedNote.textContent = 'Subiendo datos reales durante 10 segundos con 4 conexiones simultáneas…';
+
+    const upResult = await runUploadPhase(SPEED_DURATION_MS, SPEED_PARALLEL, (bytes, t) => {
+      speedUpFill.style.width = Math.min(100, (t / SPEED_DURATION_MS) * 100) + '%';
+      speedElapsedEl.textContent = Math.round((SPEED_DURATION_MS + t) / 1000) + 's';
+      speedDataMb.textContent = ((grandTotalBytes + bytes) / 1e6).toFixed(1);
+      if(t > 400){
+        setSpeedValue(speedUpEl, (bytes * 8 / 1e6) / (t / 1000));
+      }
+    });
+
+    grandTotalBytes += upResult.totalBytes;
+    setSpeedValue(speedUpEl, upResult.mbps);
+    speedUpFill.style.width = '100%';
+    speedUpPhase.textContent = '✓';
+    speedDataMb.textContent = (grandTotalBytes / 1e6).toFixed(1);
+
+    speedDot.className = 'status-dot ok';
+    speedNote.innerHTML = `Test completo (${(SPEED_DURATION_MS*2/1000)}s, ${SPEED_PARALLEL} conexiones paralelas, arranque descartado). Bajada: <b>${downResult.mbps.toFixed(1)} Mbps</b> · Subida: <b>${upResult.mbps.toFixed(1)} Mbps</b> · ${(grandTotalBytes/1e6).toFixed(0)} MB transferidos en total.`;
+  }catch(err){
+    speedDot.className = 'status-dot off';
+    speedNote.innerHTML = `No se pudo completar el test (${err.message}). Revisá tu conexión e intentá de nuevo.`;
+  }finally{
+    speedBtn.disabled = false;
+  }
+});
+
+function speedConns_update(){
+  document.getElementById('speed-conns').textContent = SPEED_PARALLEL;
+}
+speedConns_update();
+
+// ---------- BLUETOOTH ----------
+const btDot = document.getElementById('bt-dot');
+const btStatus = document.getElementById('bt-status');
+const btNote = document.getElementById('bt-note');
+const btScanBtn = document.getElementById('bt-scan-btn');
+const btWatchBtn = document.getElementById('bt-watch-btn');
+const btDevices = document.getElementById('bt-devices');
+const btRadar = document.getElementById('bt-radar');
+
+let currentDevice = null;
+let lastKnownTxPower = null; // dBm a 1m, si el dispositivo lo anuncia
+
+function batteryClass(pct){
+  if(pct <= 20) return 'low';
+  if(pct <= 50) return 'mid';
+  return '';
+}
+
+// Estimación de distancia por atenuación de señal (path-loss). Es una aproximación
+// gruesa: depende muchísimo de paredes, cuerpo, orientación de la antena, etc.
+// txPower: potencia de referencia a 1 metro (dBm). Si el dispositivo no la anuncia,
+// se usa -59 dBm, un valor típico de fábrica para BLE.
+function estimateDistance(rssi, txPower){
+  const tx = (txPower !== null && txPower !== undefined) ? txPower : -59;
+  const n = 2.5; // exponente de pérdida de señal: 2 (aire libre) a 4 (muchas paredes)
+  const dist = Math.pow(10, (tx - rssi) / (10 * n));
+  return dist;
+}
+
+function renderDeviceCard(device){
+  btDevices.innerHTML = `
+    <div class="device-card">
+      <div class="name">${device.name || 'Dispositivo sin nombre'}</div>
+      <div class="rows">
+        <div class="field">
+          <div class="v" id="bt-rssi-val">—</div>
+          <div class="k">señal (RSSI)</div>
+        </div>
+        <div class="field">
+          <div class="v off" id="bt-dist-val">—</div>
+          <div class="k">distancia estimada</div>
+        </div>
+        <div class="field" style="grid-column: span 2;">
+          <div class="v off" id="bt-batt-val">Consultando…</div>
+          <div class="k">batería</div>
+          <div class="battery-bar" id="bt-batt-bar" style="display:none;"><div class="fill" id="bt-batt-fill"></div></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function tryReadBattery(device){
+  const battEl = document.getElementById('bt-batt-val');
+  const battBar = document.getElementById('bt-batt-bar');
+  const battFill = document.getElementById('bt-batt-fill');
+  if(!battEl) return;
+
+  try{
+    if(!device.gatt){ throw new Error('sin GATT'); }
+    const server = device.gatt.connected ? device.gatt : await device.gatt.connect();
+    const service = await server.getPrimaryService('battery_service');
+    const characteristic = await service.getCharacteristic('battery_level');
+
+    const readAndShow = (value) => {
+      const pct = value.getUint8(0);
+      battEl.textContent = pct + '%';
+      battEl.className = 'v ' + (pct <= 20 ? 'warn' : '');
+      battBar.style.display = 'block';
+      battFill.style.width = pct + '%';
+      battFill.className = 'fill ' + batteryClass(pct);
+    };
+
+    const value = await characteristic.readValue();
+    readAndShow(value);
+
+    if(characteristic.properties.notify){
+      characteristic.addEventListener('characteristicvaluechanged', (e) => readAndShow(e.target.value));
+      await characteristic.startNotifications();
+    }
+  }catch(err){
+    battEl.textContent = 'No disponible en este dispositivo';
+    battEl.className = 'v off';
+  }
+}
+
+if(!navigator.bluetooth){
+  btStatus.textContent = 'No disponible';
+  btDot.className = 'status-dot off';
+  btScanBtn.disabled = true;
+  btNote.innerHTML = window.isSecureContext === false
+    ? 'Bluetooth necesita HTTPS. Esta página no está en un contexto seguro, así que el navegador lo bloquea directamente.'
+    : 'Este navegador no soporta Web Bluetooth. Probá con <b>Chrome en Android</b> o Chrome/Edge de escritorio.';
+} else {
+  btScanBtn.addEventListener('click', async () => {
+    try{
+      btRadar.classList.add('active');
+      btStatus.textContent = 'Buscando…';
+      btDot.className = 'status-dot warn';
+
+      const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: ['battery_service', 'device_information']
+      });
+
+      currentDevice = device;
+      btRadar.classList.remove('active');
+      btStatus.textContent = 'Emparejado';
+      btDot.className = 'status-dot ok';
+      renderDeviceCard(device);
+
+      // La batería se lee por GATT — funciona en muchos mouses, bandas fitness y
+      // auriculares BLE, pero NO en dispositivos que solo usan Bluetooth clásico
+      // para audio (muchos auriculares comerciales), porque no tienen ese canal.
+      tryReadBattery(device);
+
+      if('watchAdvertisements' in device){
+        btWatchBtn.style.display = 'inline-block';
+      } else {
+        btNote.innerHTML = 'Dispositivo detectado. Este navegador no soporta lectura de RSSI en vivo (<code>watchAdvertisements</code>), así que no va a poder estimar distancia.';
+      }
+
+      device.addEventListener('gattserverdisconnected', () => {
+        btStatus.textContent = 'Desconectado';
+        btDot.className = 'status-dot idle';
+      });
+
+    }catch(err){
+      btRadar.classList.remove('active');
+      btStatus.textContent = 'Cancelado';
+      btDot.className = 'status-dot idle';
+      btNote.innerHTML = `No se seleccionó ningún dispositivo (${err.message || 'cancelado por el usuario'}).`;
+    }
+  });
+
+  btWatchBtn.addEventListener('click', async () => {
+    if(!currentDevice) return;
+    try{
+      btDot.className = 'status-dot ok';
+      btRadar.classList.add('active');
+      btStatus.textContent = 'Señal en vivo';
+
+      currentDevice.addEventListener('advertisementreceived', (event) => {
+        const rssiVal = document.getElementById('bt-rssi-val');
+        const distVal = document.getElementById('bt-dist-val');
+        if(event.txPower !== undefined && event.txPower !== null){
+          lastKnownTxPower = event.txPower;
+        }
+        if(rssiVal && event.rssi !== undefined){
+          rssiVal.textContent = event.rssi + ' dBm';
+        }
+        if(distVal && event.rssi !== undefined){
+          const d = estimateDistance(event.rssi, lastKnownTxPower);
+          distVal.textContent = '~' + d.toFixed(1) + ' m';
+          distVal.className = 'v';
+        }
+      });
+
+      await currentDevice.watchAdvertisements();
+      btNote.innerHTML = 'Leyendo anuncios BLE en tiempo real. La distancia es una <b>estimación aproximada</b> a partir de la señal — varía con paredes, el cuerpo, la orientación del dispositivo, etc. No es una medición exacta.';
+    }catch(err){
+      btNote.innerHTML = `No se pudo iniciar la lectura en vivo: ${err.message}. Puede requerir activar una flag experimental de Chrome.`;
+    }
+  });
+}
+
+// ---------- BATERÍA DEL EQUIPO ----------
+(function initBattery(){
+  const battDot = document.getElementById('batt-dot');
+  const battFill = document.getElementById('batt-fill');
+  const battLevel = document.getElementById('batt-level');
+  const battStatus = document.getElementById('batt-status');
+  const battTime = document.getElementById('batt-time');
+  const battNote = document.getElementById('batt-note');
+
+  if(!navigator.getBattery){
+    battDot.className = 'status-dot off';
+    battLevel.textContent = 'N/D';
+    battNote.textContent = 'Este navegador no expone la batería (Safari y Firefox la sacaron por privacidad). Probá en Chrome/Edge Android o escritorio.';
+    return;
+  }
+
+  navigator.getBattery().then((battery) => {
+    function fmtTime(sec){
+      if(sec === Infinity || sec === undefined || isNaN(sec)) return '—';
+      const h = Math.floor(sec / 3600);
+      const m = Math.round((sec % 3600) / 60);
+      return h > 0 ? `${h}h ${m}m` : `${m}m`;
+    }
+
+    function update(){
+      const pct = Math.round(battery.level * 100);
+      battLevel.textContent = pct + '%';
+      battFill.style.width = pct + '%';
+      battFill.className = 'fill ' + (pct <= 20 ? 'low' : pct <= 50 ? 'mid' : '') ;
+      // reutiliza clases de battery-bar para el color si aplica, si no cae al teal por defecto
+      if(pct <= 20){ battFill.style.background = 'var(--red)'; }
+      else if(pct <= 50){ battFill.style.background = 'var(--amber)'; }
+      else { battFill.style.background = ''; }
+
+      battStatus.textContent = battery.charging ? 'Cargando' : 'Sin cargar';
+      battDot.className = 'status-dot ' + (battery.charging ? 'ok' : (pct <= 20 ? 'off' : 'warn'));
+
+      if(battery.charging){
+        battTime.textContent = fmtTime(battery.chargingTime);
+      } else {
+        battTime.textContent = fmtTime(battery.dischargingTime);
+      }
+      battNote.textContent = 'Fuente: Battery Status API, dato real reportado por el sistema operativo de tu equipo.';
+    }
+
+    update();
+    battery.addEventListener('levelchange', update);
+    battery.addEventListener('chargingchange', update);
+    battery.addEventListener('chargingtimechange', update);
+    battery.addEventListener('dischargingtimechange', update);
+  }).catch(() => {
+    battDot.className = 'status-dot off';
+    battNote.textContent = 'No se pudo acceder a la batería en este navegador.';
+  });
+})();
+
+// ---------- DETECTOR ELECTROMAGNÉTICO (magnetómetro crudo) ----------
+(function initEMDetector(){
+  const emDot = document.getElementById('em-dot');
+  const emFill = document.getElementById('em-fill');
+  const emValue = document.getElementById('em-value');
+  const emBaseline = document.getElementById('em-baseline');
+  const emDeviation = document.getElementById('em-deviation');
+  const emStartBtn = document.getElementById('em-start-btn');
+  const emNote = document.getElementById('em-note');
+
+  let sensor = null;
+  let baseline = null;
+  let running = false;
+
+  function stopSensor(){
+    running = false;
+    if(sensor){ try{ sensor.stop(); }catch(e){} sensor = null; }
+    emStartBtn.textContent = 'Iniciar detector';
+    emDot.className = 'status-dot idle';
+  }
+
+  async function startSensor(){
+    if(typeof Magnetometer === 'undefined'){
+      emNote.innerHTML = 'Este navegador no expone el magnetómetro crudo (<code>Magnetometer</code> / Generic Sensor API). Anda en <b>Chrome para Android</b>; no está disponible en iPhone ni en la mayoría de navegadores de escritorio.';
+      emDot.className = 'status-dot off';
+      return;
+    }
+
+    if(window.isSecureContext === false){
+      emNote.textContent = 'Necesita HTTPS para funcionar. Esta página no está en un contexto seguro.';
+      emDot.className = 'status-dot off';
+      return;
+    }
+
+    try{
+      if(navigator.permissions && navigator.permissions.query){
+        try{
+          const perm = await navigator.permissions.query({ name: 'magnetometer' });
+          if(perm.state === 'denied'){
+            emNote.textContent = 'Permiso de magnetómetro bloqueado. Revisá los permisos del sitio en tu navegador.';
+            emDot.className = 'status-dot off';
+            return;
+          }
+        }catch(e){ /* algunos navegadores no soportan consultar este permiso puntual */ }
+      }
+
+      sensor = new Magnetometer({ frequency: 8 });
+      baseline = null;
+
+      sensor.addEventListener('reading', () => {
+        const magnitude = Math.sqrt(sensor.x**2 + sensor.y**2 + sensor.z**2);
+
+        if(baseline === null){
+          baseline = magnitude;
+        } else {
+          baseline = baseline * 0.985 + magnitude * 0.015; // línea base que se adapta lento
+        }
+
+        const deviationPct = ((magnitude - baseline) / baseline) * 100;
+
+        emValue.textContent = magnitude.toFixed(1);
+        emBaseline.textContent = baseline.toFixed(1);
+        emDeviation.textContent = (deviationPct >= 0 ? '+' : '') + deviationPct.toFixed(0) + '%';
+
+        const pctBar = Math.min(100, (magnitude / 150) * 100); // 150 µT como techo visual de referencia
+        emFill.style.width = pctBar + '%';
+
+        if(Math.abs(deviationPct) > 40){
+          emFill.style.background = 'var(--red)';
+          emDot.className = 'status-dot off';
+          emNote.innerHTML = `⚠ <b>Fuerte anomalía magnética detectada</b> (${deviationPct.toFixed(0)}%). Puede haber metal, electrónica o un cable de alta tensión muy cerca.`;
+        } else if(Math.abs(deviationPct) > 15){
+          emFill.style.background = 'var(--amber)';
+          emDot.className = 'status-dot warn';
+          emNote.textContent = `Desvío moderado respecto a la línea base (${deviationPct.toFixed(0)}%). Puede haber algo metálico cerca.`;
+        } else {
+          emFill.style.background = 'var(--teal)';
+          emDot.className = 'status-dot ok';
+          emNote.textContent = 'Campo magnético estable, sin anomalías cerca del rango de la línea base.';
+        }
+      });
+
+      sensor.addEventListener('error', (event) => {
+        emNote.textContent = `Error del sensor: ${event.error.name} — ${event.error.message}`;
+        emDot.className = 'status-dot off';
+        stopSensor();
+      });
+
+      sensor.start();
+      running = true;
+      emStartBtn.textContent = 'Detener detector';
+      emDot.className = 'status-dot warn';
+      emNote.textContent = 'Calibrando línea base… movete despacio, alejado de metales, los primeros segundos.';
+    }catch(err){
+      emNote.textContent = `No se pudo iniciar el magnetómetro: ${err.message}`;
+      emDot.className = 'status-dot off';
+    }
+  }
+
+  if(typeof Magnetometer === 'undefined'){
+    emNote.innerHTML = 'Este navegador no expone el magnetómetro crudo. Anda en <b>Chrome para Android</b>; no disponible en iPhone.';
+  }
+
+  emStartBtn.addEventListener('click', () => {
+    running ? stopSensor() : startSensor();
+  });
+})();
+
+// ---------- MEDIDOR DE RUIDO AMBIENTE (micrófono real) ----------
+(function initNoiseMeter(){
+  const noiseDot = document.getElementById('noise-dot');
+  const noiseRing = document.getElementById('noise-ring');
+  const noiseDb = document.getElementById('noise-db');
+  const noiseLabel = document.getElementById('noise-label');
+  const noisePeak = document.getElementById('noise-peak');
+  const noiseStartBtn = document.getElementById('noise-start-btn');
+  const noiseNote = document.getElementById('noise-note');
+  const micSelect = document.getElementById('mic-select');
+
+  const RING_CIRC = 2 * Math.PI * 52; // ≈326.7
+  const DB_FLOOR = -60; // silencio de referencia
+  const DB_CEIL = 0;    // pico de referencia (clipping)
+
+  let audioCtx = null;
+  let analyser = null;
+  let stream = null;
+  let rafId = null;
+  let running = false;
+  let peakDb = -Infinity;
+
+  function levelLabel(pct){
+    if(pct < 12) return { text: 'Silencio', color: 'var(--teal)' };
+    if(pct < 35) return { text: 'Tranquilo', color: 'var(--teal)' };
+    if(pct < 60) return { text: 'Moderado', color: 'var(--amber)' };
+    if(pct < 82) return { text: 'Ruidoso', color: 'var(--amber)' };
+    return { text: 'Muy ruidoso', color: 'var(--red)' };
+  }
+
+  function updateRing(pct, color){
+    const offset = RING_CIRC * (1 - pct / 100);
+    noiseRing.style.strokeDashoffset = offset;
+    noiseRing.style.stroke = color;
+  }
+
+  function tick(){
+    if(!running || !analyser) return;
+    const data = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(data);
+
+    let sumSquares = 0;
+    for(let i = 0; i < data.length; i++){ sumSquares += data[i] * data[i]; }
+    const rms = Math.sqrt(sumSquares / data.length);
+    const db = rms > 0 ? 20 * Math.log10(rms) : DB_FLOOR;
+    const dbClamped = Math.max(DB_FLOOR, Math.min(DB_CEIL, db));
+    const pct = ((dbClamped - DB_FLOOR) / (DB_CEIL - DB_FLOOR)) * 100;
+
+    if(dbClamped > peakDb) peakDb = dbClamped;
+
+    noiseDb.textContent = Math.round(dbClamped);
+    const lvl = levelLabel(pct);
+    noiseLabel.textContent = lvl.text;
+    noiseLabel.style.color = lvl.color;
+    noisePeak.textContent = 'Pico: ' + Math.round(peakDb) + ' dB rel.';
+    updateRing(pct, lvl.color);
+
+    rafId = requestAnimationFrame(tick);
+  }
+
+  async function populateMicList(){
+    try{
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const mics = devices.filter(d => d.kind === 'audioinput');
+      if(mics.length <= 1) { micSelect.style.display = 'none'; return; }
+
+      micSelect.innerHTML = '';
+      mics.forEach((m, i) => {
+        const opt = document.createElement('option');
+        opt.value = m.deviceId;
+        opt.textContent = m.label || `Micrófono ${i + 1}`;
+        micSelect.appendChild(opt);
+      });
+      micSelect.style.display = 'block';
+    }catch(e){ /* no se pudo listar, sigue con el micrófono por defecto */ }
+  }
+
+  async function startMic(deviceId){
+    try{
+      const constraints = {
+        audio: deviceId ? { deviceId: { exact: deviceId } } : true
+      };
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(stream);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      source.connect(analyser);
+
+      running = true;
+      peakDb = -Infinity;
+      noiseDot.className = 'status-dot ok';
+      noiseStartBtn.textContent = 'Detener micrófono';
+      noiseNote.textContent = 'Midiendo en vivo. Nivel relativo — no es dB SPL calibrado.';
+
+      await populateMicList();
+      tick();
+    }catch(err){
+      noiseDot.className = 'status-dot off';
+      if(err.name === 'NotAllowedError'){
+        noiseNote.textContent = 'Permiso de micrófono denegado. Revisá los permisos del sitio en tu navegador y volvé a intentar.';
+      } else {
+        noiseNote.textContent = `No se pudo activar el micrófono: ${err.message}`;
+      }
+    }
+  }
+
+  function stopMic(){
+    running = false;
+    if(rafId) cancelAnimationFrame(rafId);
+    if(stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
+    if(audioCtx){ audioCtx.close(); audioCtx = null; }
+    analyser = null;
+
+    noiseDot.className = 'status-dot idle';
+    noiseStartBtn.textContent = 'Activar micrófono';
+    noiseDb.textContent = '—';
+    noiseLabel.textContent = 'Sin medir';
+    noiseLabel.style.color = 'var(--amber)';
+    updateRing(0, 'var(--teal)');
+    noiseNote.textContent = 'Micrófono apagado. Nada quedó grabado.';
+  }
+
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    noiseStartBtn.disabled = true;
+    noiseDot.className = 'status-dot off';
+    noiseNote.textContent = 'Este navegador no soporta acceso al micrófono, o la página no está en HTTPS.';
+  } else {
+    noiseStartBtn.addEventListener('click', () => {
+      running ? stopMic() : startMic(micSelect.style.display !== 'none' ? micSelect.value : null);
+    });
+
+    micSelect.addEventListener('change', () => {
+      if(running){ stopMic(); startMic(micSelect.value); }
+    });
+  }
+})();
+
+// ---------- CONSOLA CENTRAL ----------
+(function initConsole(){
+  const powerBtn = document.getElementById('console-power');
+  const consoleNote = document.getElementById('console-note');
+
+  function goTo(panelId, actionBtnId, idleLabel){
+    const panel = document.getElementById(panelId);
+    if(panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if(actionBtnId){
+      const btn = document.getElementById(actionBtnId);
+      if(btn && !btn.disabled && btn.textContent.trim() === idleLabel) btn.click();
+    }
+  }
+
+  document.getElementById('node-red').addEventListener('click', () => goTo('panel-net', null, null));
+  document.getElementById('node-compass').addEventListener('click', () => goTo('panel-compass', 'compass-start', 'Iniciar mapeo'));
+  document.getElementById('node-speed').addEventListener('click', () => goTo('panel-speed', 'speed-btn', 'Iniciar test de velocidad (10s + 10s)'));
+  document.getElementById('node-bt').addEventListener('click', () => goTo('panel-bt', null, null));
+  document.getElementById('node-batt').addEventListener('click', () => goTo('panel-batt', null, null));
+  document.getElementById('node-em').addEventListener('click', () => goTo('panel-em', 'em-start-btn', 'Iniciar detector'));
+  document.getElementById('node-noise').addEventListener('click', () => goTo('panel-noise', 'noise-start-btn', 'Activar micrófono'));
+
+  // Sincroniza las luces de cada nodo con el estado real de cada panel
+  function syncLed(sourceId, ledId){
+    const src = document.getElementById(sourceId);
+    const led = document.getElementById(ledId);
+    if(!src || !led) return;
+    const state = src.className.replace('status-dot', '').trim() || 'idle';
+    led.className = 'node-led ' + state;
+  }
+  setInterval(() => {
+    syncLed('net-dot', 'led-red');
+    syncLed('compass-dot', 'led-compass');
+    syncLed('speed-dot', 'led-speed');
+    syncLed('bt-dot', 'led-bt');
+    syncLed('batt-dot', 'led-batt');
+    syncLed('em-dot', 'led-em');
+    syncLed('noise-dot', 'led-noise');
+  }, 800);
+
+  powerBtn.addEventListener('click', async () => {
+    powerBtn.classList.add('engaged');
+    consoleNote.textContent = 'Encendiendo sistemas… puede aparecer más de un cartel de permisos del sistema.';
+
+    const permBtnEl = document.getElementById('perm-btn');
+    const compassBtnEl = document.getElementById('compass-start');
+    const emBtnEl = document.getElementById('em-start-btn');
+    const speedBtnEl = document.getElementById('speed-btn');
+
+    if(permBtnEl) permBtnEl.click();
+    await new Promise(r => setTimeout(r, 1600));
+
+    if(compassBtnEl && compassBtnEl.textContent.trim() === 'Iniciar mapeo') compassBtnEl.click();
+    if(emBtnEl && emBtnEl.textContent.trim() === 'Iniciar detector') emBtnEl.click();
+    if(speedBtnEl && !speedBtnEl.disabled) speedBtnEl.click();
+
+    consoleNote.innerHTML = 'Sistemas activos: Brújula y Detector EM corriendo, Velocidad midiendo 20s. <b>Bluetooth</b> lo tenés que activar aparte tocando su nodo (requiere elegir el dispositivo).';
+  });
+})();
+</script>
+</body>
+</html>
