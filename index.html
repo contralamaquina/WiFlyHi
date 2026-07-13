@@ -376,6 +376,7 @@
       <div class="compass-info">
         <div class="live" id="compass-live">—<span class="unit">Mbps ahora</span></div>
         <div class="target" id="compass-target">Presioná «Iniciar mapeo» y caminá despacio por la casa.</div>
+        <div class="target" id="compass-accuracy" style="margin-top:4px; font-size:10.5px; color:var(--muted);"></div>
       </div>
     </div>
 
@@ -630,9 +631,12 @@ function refreshCompassDisplay(){
   const last = state.log[state.log.length - 1];
   compassLive.innerHTML = last ? last.mbps.toFixed(1) + '<span class="unit">Mbps ahora</span>' : '—<span class="unit">Mbps ahora</span>';
 
+  const accuracyEl = document.getElementById('compass-accuracy');
+
   if(!currentPos || !state.best){
     compassTarget.textContent = compassActive ? 'Buscando primera referencia GPS…' : 'Presioná «Iniciar mapeo» y caminá despacio por la casa.';
     compassNeedle.style.opacity = '0.15';
+    if(accuracyEl) accuracyEl.textContent = currentPos ? `Precisión GPS: ±${Math.round(currentPos.acc)} m` : '';
     return;
   }
 
@@ -641,7 +645,25 @@ function refreshCompassDisplay(){
 
   compassDial.style.transform = `rotate(${-currentHeading}deg)`;
 
-  if(dist < 4){
+  // El umbral de "llegaste" se adapta al error real del GPS: si el GPS tiene
+  // ±15m de margen, no tiene sentido pedir precisión de 4m.
+  const arrivalThreshold = Math.max(4, (currentPos.acc || 8) * 0.6);
+
+  if(accuracyEl){
+    const acc = Math.round(currentPos.acc || 0);
+    if(acc > 20){
+      accuracyEl.innerHTML = `⚠ Precisión GPS baja: ±${acc} m — puertas adentro puede fallar. Probá cerca de una ventana.`;
+      accuracyEl.style.color = 'var(--red)';
+    } else if(acc > 10){
+      accuracyEl.textContent = `Precisión GPS: ±${acc} m (aceptable puertas adentro)`;
+      accuracyEl.style.color = 'var(--amber-dim)';
+    } else {
+      accuracyEl.textContent = `Precisión GPS: ±${acc} m`;
+      accuracyEl.style.color = 'var(--muted)';
+    }
+  }
+
+  if(dist < arrivalThreshold){
     compassNeedle.classList.add('arrived');
     compassNeedle.style.opacity = '';
     compassTarget.innerHTML = `Estás en el <b>mejor punto</b> detectado (${state.best.mbps.toFixed(1)} Mbps).`;
@@ -652,6 +674,7 @@ function refreshCompassDisplay(){
     compassTarget.innerHTML = `Mejor punto: <b>${state.best.mbps.toFixed(1)} Mbps</b> a ~${Math.round(dist)} m hacia el ${compassLabel(brg)}.`;
   }
 }
+
 
 function recordSample(mbps){
   if(!currentPos) return;
