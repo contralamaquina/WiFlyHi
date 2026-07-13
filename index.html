@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Panel de Señal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Big+Shoulders+Text:wght@500;700;900&display=swap');
+
+  :root{
+    --bg:#1a1815;
+    --bg-panel:#221f1a;
+    --bg-plate:#2a2620;
+    --bevel-lo: #0f0d0b;
+    --bevel-hi: #3a352c;
+    --cream:#e8dcc4;
+    --amber:#e0a84a;
+    --amber-dim:#8a6a35;
+    --teal:#4a9b8e;
+    --teal-dim:#2c5c53;
+    --red:#c1594d;
+    --red-dim:#6e3229;
+    --ink:#0f0d0b;
+    --muted:#9c9182;
+  }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 20% -10%, #262219 0%, transparent 55%),
+      radial-gradient(ellipse at 100% 110%, #201d18 0%, transparent 50%),
+      var(--bg);
+    color:var(--cream);
+    font-family:'IBM Plex Mono', monospace;
+    min-height:100vh;
+    padding:18px 14px 40px;
+  }
+
+  .wrap{max-width:640px; margin:0 auto;}
+
+  header{
+    display:flex; align-items:baseline; justify-content:space-between;
+    padding:4px 4px 18px;
+    border-bottom:1px solid #3a352c;
+    margin-bottom:20px;
+  }
+  header h1{
+    font-family:'Big Shoulders Text', sans-serif;
+    font-weight:900;
+    font-size:26px;
+    letter-spacing:0.5px;
+    margin:0;
+    color:var(--cream);
+    text-transform:uppercase;
+  }
+  header .sub{
+    font-size:10px;
+    color:var(--muted);
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+  }
+  header .clock{
+    font-size:11px;
+    color:var(--amber);
+    letter-spacing:1px;
+  }
+
+  .panel{
+    background:linear-gradient(180deg, var(--bg-plate), var(--bg-panel));
+    border-radius:10px;
+    border:1px solid #3a352c;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.04),
+      0 6px 16px rgba(0,0,0,0.35);
+    padding:16px 16px 14px;
+    margin-bottom:16px;
+    position:relative;
+  }
+  .panel::before{
+    content:'';
+    position:absolute; top:8px; left:8px; width:5px; height:5px; border-radius:50%;
+    background:var(--bevel-lo); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+  }
+  .panel::after{
+    content:'';
+    position:absolute; top:8px; right:8px; width:5px; height:5px; border-radius:50%;
+    background:var(--bevel-lo); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+  }
+
+  .panel-head{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:12px;
+  }
+  .panel-title{
+    font-family:'Big Shoulders Text', sans-serif;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    color:var(--cream);
+  }
+  .panel-title .idx{
+    color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:500;
+    font-size:11px;
+    margin-right:8px;
+  }
+
+  .status-dot{
+    width:9px; height:9px; border-radius:50%;
+    display:inline-block;
+    box-shadow:0 0 6px currentColor;
+  }
+  .status-dot.ok{color:var(--teal); background:var(--teal);}
+  .status-dot.warn{color:var(--amber); background:var(--amber);}
+  .status-dot.off{color:var(--red); background:var(--red);}
+  .status-dot.idle{color:var(--muted); background:var(--muted); box-shadow:none;}
+
+  .gauge-row{
+    display:flex; align-items:center; gap:16px;
+    margin-bottom:12px;
+  }
+
+  .bars{
+    display:flex; align-items:flex-end; gap:3px; height:34px;
+  }
+  .bars .b{
+    width:8px; background:var(--bevel-lo);
+    border-radius:2px 2px 0 0;
+    transition:background 0.4s ease;
+  }
+  .bars .b:nth-child(1){height:20%;}
+  .bars .b:nth-child(2){height:40%;}
+  .bars .b:nth-child(3){height:60%;}
+  .bars .b:nth-child(4){height:80%;}
+  .bars .b:nth-child(5){height:100%;}
+  .bars .b.lit{background:var(--teal); box-shadow:0 0 6px var(--teal-dim);}
+  .bars .b.lit.warn{background:var(--amber); box-shadow:0 0 6px var(--amber-dim);}
+  .bars .b.lit.weak{background:var(--red); box-shadow:0 0 6px var(--red-dim);}
+
+  .readout{
+    flex:1;
+    background:var(--ink);
+    border-radius:6px;
+    padding:8px 12px;
+    box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);
+  }
+  .readout .big{
+    font-size:20px; font-weight:600; color:var(--amber);
+    letter-spacing:0.5px;
+  }
+  .readout .lbl{
+    font-size:9px; color:var(--muted); letter-spacing:1px; text-transform:uppercase;
+  }
+
+  .metrics{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+    margin-bottom:8px;
+  }
+  .metric{
+    background:var(--ink);
+    border-radius:6px; padding:7px 8px;
+    box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);
+  }
+  .metric .v{font-size:14px; color:var(--cream); font-weight:600;}
+  .metric .k{font-size:8.5px; color:var(--muted); letter-spacing:0.8px; text-transform:uppercase; margin-top:2px;}
+
+  .note{
+    font-size:10.5px; color:var(--muted); line-height:1.5; margin-top:10px;
+    border-top:1px dashed #3a352c; padding-top:8px;
+  }
+  .note b{color:var(--amber-dim);}
+
+  button{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600; font-size:11.5px; letter-spacing:0.8px; text-transform:uppercase;
+    background:linear-gradient(180deg, #3a352c, #2a2620);
+    color:var(--cream);
+    border:1px solid #4a4436;
+    border-radius:6px;
+    padding:9px 14px;
+    cursor:pointer;
+    box-shadow:0 2px 0 var(--bevel-lo), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  button:active{transform:translateY(1px); box-shadow:0 1px 0 var(--bevel-lo);}
+  button:disabled{opacity:0.4; cursor:not-allowed;}
+
+  .device-list{margin-top:10px;}
+  .device{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--ink); border-radius:6px; padding:8px 10px; margin-bottom:6px;
+    font-size:11.5px;
+  }
+  .device .name{color:var(--cream);}
+  .device .rssi{color:var(--teal); font-weight:600;}
+
+  .progress{
+    height:8px; border-radius:4px; background:var(--ink);
+    box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);
+    overflow:hidden; margin-top:6px;
+  }
+  .progress .fill{
+    height:100%; width:0%; border-radius:4px;
+    background:linear-gradient(90deg, var(--teal-dim), var(--teal));
+    transition:width 0.15s linear;
+  }
+  .progress .fill.up{
+    background:linear-gradient(90deg, var(--amber-dim), var(--amber));
+  }
+  .scope-toggle{
+    display:flex; gap:6px; margin-bottom:12px;
+  }
+  .scope-toggle button{
+    flex:1; padding:8px 6px; font-size:10.5px;
+    background:var(--ink); border:1px solid #3a352c; box-shadow:none;
+  }
+  .scope-toggle button.active{
+    background:linear-gradient(180deg, var(--teal-dim), #1c3d37);
+    border-color:var(--teal-dim); color:var(--cream);
+  }
+
+  .compass-wrap{display:flex; align-items:center; gap:18px; margin-bottom:12px;}
+  .compass-circle{
+    width:130px; height:130px; min-width:130px; border-radius:50%;
+    position:relative; background:var(--ink);
+    box-shadow:inset 0 2px 8px rgba(0,0,0,0.6), 0 0 0 1px #3a352c;
+  }
+  .dial{position:absolute; inset:0; transition:transform 0.2s linear;}
+  .tick{position:absolute; font-size:10px; color:var(--muted); font-weight:600;}
+  .tick.n{top:6px; left:50%; transform:translateX(-50%); color:var(--amber);}
+  .tick.e{right:7px; top:50%; transform:translateY(-50%);}
+  .tick.s{bottom:6px; left:50%; transform:translateX(-50%);}
+  .tick.o{left:7px; top:50%; transform:translateY(-50%);}
+  .needle{
+    position:absolute; left:50%; top:50%; width:4px; height:46px;
+    margin-left:-2px; margin-top:-46px; transform-origin:50% 100%;
+    background:linear-gradient(var(--teal), rgba(74,155,142,0));
+    border-radius:3px; transition:transform 0.2s linear, opacity 0.3s;
+  }
+  .needle::after{
+    content:''; position:absolute; top:-7px; left:50%; transform:translateX(-50%);
+    border-left:6px solid transparent; border-right:6px solid transparent;
+    border-bottom:11px solid var(--teal);
+  }
+  .needle.arrived{opacity:0.25;}
+  .you-dot{
+    position:absolute; left:50%; top:50%; width:8px; height:8px; border-radius:50%;
+    background:var(--amber); margin-left:-4px; margin-top:-4px; box-shadow:0 0 8px var(--amber-dim);
+  }
+  .compass-info{flex:1; min-width:0;}
+  .compass-info .live{font-size:22px; font-weight:600; color:var(--amber);}
+  .compass-info .live .unit{font-size:11px; color:var(--muted); font-weight:400;}
+  .compass-info .target{font-size:12px; color:var(--cream); margin-top:6px; line-height:1.5;}
+  .compass-info .target b{color:var(--teal);}
+
+  .compass-btns{display:flex; gap:8px; margin-top:4px;}
+  .compass-btns button{flex:1;}
+  .btn-secondary{
+    background:linear-gradient(180deg, #2a2620, #221f1a) !important;
+    color:var(--muted) !important;
+  }
+
+  .speed-row{margin-bottom:12px;}
+  .speed-row .head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;}
+  .speed-row .head .k{font-size:9.5px; color:var(--muted); letter-spacing:1px; text-transform:uppercase;}
+  .speed-row .head .v{font-size:16px; color:var(--cream); font-weight:600;}
+  .speed-row .head .v .unit{font-size:10px; color:var(--muted); font-weight:400; margin-left:3px;}
+
+  .radar{
+    width:34px; height:34px; border-radius:50%;
+    border:1px solid #4a4436;
+    position:relative;
+    overflow:hidden;
+    background:var(--ink);
+    flex-shrink:0;
+  }
+  .radar .sweep{
+    position:absolute; top:0; left:50%; width:50%; height:50%;
+    transform-origin:0% 100%;
+    background:conic-gradient(from 0deg, var(--teal) 0deg, transparent 60deg);
+    animation:spin 1.6s linear infinite;
+    opacity:0;
+  }
+  .radar.active .sweep{opacity:0.85;}
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  footer{
+    text-align:center; font-size:9.5px; color:var(--muted); margin-top:22px; letter-spacing:0.5px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Panel de Señal</h1>
+      <div class="sub">Monitor de conectividad · en vivo</div>
+    </div>
+    <div class="clock" id="clock">--:--:--</div>
+  </header>
+
+  <!-- PERMISOS -->
+  <div class="panel" id="perm-panel">
+    <div class="panel-head">
+      <div class="panel-title">Permisos del equipo</div>
+      <span class="status-dot idle" id="perm-dot"></span>
+    </div>
+    <div class="note" id="perm-note">Esta app necesita acceso a tu ubicación y a la orientación del teléfono para la brújula de señal. Bluetooth se pide aparte, cuando busques un dispositivo. Nada se envía a ningún servidor: todo queda en tu teléfono.</div>
+    <div class="metrics" style="margin-top:10px;">
+      <div class="metric"><div class="v" id="diag-protocol" style="font-size:11px;">—</div><div class="k">protocolo</div></div>
+      <div class="metric"><div class="v" id="diag-secure" style="font-size:11px;">—</div><div class="k">contexto seguro</div></div>
+      <div class="metric"><div class="v" id="diag-geo" style="font-size:11px;">—</div><div class="k">API geo</div></div>
+    </div>
+    <button id="perm-btn" style="margin-top:10px; width:100%;">Dar permisos ahora</button>
+  </div>
+
+  <!-- RED (WIFI / DATOS) -->
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title"><span class="idx">01</span>Red — Wifi / Datos</div>
+      <span class="status-dot idle" id="net-dot"></span>
+    </div>
+
+    <div class="gauge-row">
+      <div class="bars" id="net-bars">
+        <div class="b"></div><div class="b"></div><div class="b"></div><div class="b"></div><div class="b"></div>
+      </div>
+      <div class="readout">
+        <div class="big" id="net-type">—</div>
+        <div class="lbl">tipo de conexión</div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><div class="v" id="net-downlink">—</div><div class="k">Mbps est.</div></div>
+      <div class="metric"><div class="v" id="net-rtt">—</div><div class="k">RTT ms</div></div>
+      <div class="metric"><div class="v" id="net-save">—</div><div class="k">ahorro datos</div></div>
+    </div>
+
+    <div class="note" id="net-note">Detectando compatibilidad del navegador…</div>
+  </div>
+
+  <!-- BRÚJULA DE SEÑAL (GPS) -->
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title"><span class="idx">02</span>Brújula de Señal</div>
+      <span class="status-dot idle" id="compass-dot"></span>
+    </div>
+
+    <div class="scope-toggle">
+      <button class="active" id="scope-movil">Datos móviles</button>
+      <button id="scope-wifi">Wifi</button>
+    </div>
+
+    <div class="compass-wrap">
+      <div class="compass-circle">
+        <div class="dial" id="compass-dial">
+          <span class="tick n">N</span>
+          <span class="tick e">E</span>
+          <span class="tick s">S</span>
+          <span class="tick o">O</span>
+        </div>
+        <div class="needle" id="compass-needle"></div>
+        <div class="you-dot"></div>
+      </div>
+      <div class="compass-info">
+        <div class="live" id="compass-live">—<span class="unit">Mbps ahora</span></div>
+        <div class="target" id="compass-target">Presioná «Iniciar mapeo» y caminá despacio por la casa.</div>
+      </div>
+    </div>
+
+    <div class="compass-btns">
+      <button id="compass-start">Iniciar mapeo</button>
+      <button id="compass-reset" class="btn-secondary">Reiniciar</button>
+    </div>
+
+    <div class="note" id="compass-note">Elegí arriba qué red estás usando ahora mismo. La app mide tu velocidad real cada pocos segundos en cada punto y la flecha señala hacia el mejor lugar detectado en este recorrido. Necesita permiso de ubicación y, en iPhone, de orientación. Consume algo de datos si estás midiendo datos móviles.</div>
+  </div>
+
+  <!-- TEST DE VELOCIDAD REAL -->
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title"><span class="idx">03</span>Test de Velocidad Real</div>
+      <span class="status-dot idle" id="speed-dot"></span>
+    </div>
+
+    <div class="speed-row">
+      <div class="head"><span class="k">Bajada</span><span class="v" id="speed-down">—<span class="unit">Mbps</span></span></div>
+      <div class="progress"><div class="fill" id="speed-down-fill"></div></div>
+    </div>
+
+    <div class="speed-row">
+      <div class="head"><span class="k">Subida</span><span class="v" id="speed-up">—<span class="unit">Mbps</span></span></div>
+      <div class="progress"><div class="fill up" id="speed-up-fill"></div></div>
+    </div>
+
+    <button id="speed-btn">Iniciar test de velocidad</button>
+
+    <div class="note" id="speed-note">Descarga y sube datos reales (~20 MB) para medir la velocidad real de tu conexión, no una estimación. Puede consumir datos de tu plan si estás con datos móviles.</div>
+  </div>
+
+  <!-- BLUETOOTH -->
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title"><span class="idx">04</span>Bluetooth</div>
+      <span class="status-dot idle" id="bt-dot"></span>
+    </div>
+
+    <div class="gauge-row">
+      <div class="radar" id="bt-radar"><div class="sweep"></div></div>
+      <div class="readout">
+        <div class="big" id="bt-status">Sin escanear</div>
+        <div class="lbl">estado</div>
+      </div>
+    </div>
+
+    <button id="bt-scan-btn">Buscar dispositivo cercano</button>
+    <button id="bt-watch-btn" style="margin-left:8px; display:none;">Ver señal en vivo (RSSI)</button>
+
+    <div class="device-list" id="bt-devices"></div>
+
+    <div class="note" id="bt-note">Bluetooth vía navegador requiere permiso explícito por dispositivo y solo funciona en Chrome/Edge (Android o escritorio). No hay escaneo pasivo por seguridad.</div>
+  </div>
+
+  <footer>
+    Los navegadores no exponen dBm real de wifi/datos móviles — estos valores son estimaciones basadas en velocidad y latencia reportadas por el sistema.
+  </footer>
+
+</div>
+
+<script>
+// ---------- RELOJ ----------
+function tickClock(){
+  const d = new Date();
+  document.getElementById('clock').textContent = d.toLocaleTimeString('es-AR', {hour12:false});
+}
+setInterval(tickClock, 1000); tickClock();
+
+// ---------- RED (Network Information API) ----------
+const netDot = document.getElementById('net-dot');
+const netBars = document.querySelectorAll('#net-bars .b');
+const netType = document.getElementById('net-type');
+const netDownlink = document.getElementById('net-downlink');
+const netRtt = document.getElementById('net-rtt');
+const netSave = document.getElementById('net-save');
+const netNote = document.getElementById('net-note');
+
+function classForQuality(level){ // 0-5
+  if(level >= 4) return '';
+  if(level >= 2) return 'warn';
+  return 'weak';
+}
+
+function renderBars(level, quality){
+  netBars.forEach((b, i) => {
+    b.classList.remove('lit','warn','weak');
+    if(i < level){
+      b.classList.add('lit');
+      if(quality) b.classList.add(quality);
+    }
+  });
+}
+
+function updateNetwork(){
+  if(!navigator.onLine){
+    netDot.className = 'status-dot off';
+    netType.textContent = 'SIN CONEXIÓN';
+    renderBars(0);
+    netDownlink.textContent = '—';
+    netRtt.textContent = '—';
+    netSave.textContent = '—';
+    netNote.innerHTML = '<b>Offline.</b> El dispositivo no reporta ninguna red activa.';
+    return;
+  }
+
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+
+  if(!conn){
+    netDot.className = 'status-dot ok';
+    netType.textContent = 'CONECTADO';
+    renderBars(3, 'warn');
+    netDownlink.textContent = '—';
+    netRtt.textContent = '—';
+    netSave.textContent = '—';
+    netNote.innerHTML = 'Tu navegador (probablemente Safari/iOS) no expone detalles de red. Solo se sabe que hay conexión activa.';
+    return;
+  }
+
+  const type = conn.type; // wifi, cellular, none, unknown...
+  const effectiveType = conn.effectiveType; // slow-2g, 2g, 3g, 4g
+  const downlink = conn.downlink; // Mbps estimado
+  const rtt = conn.rtt; // ms
+  const saveData = conn.saveData;
+
+  let label = type ? type.toUpperCase() : (effectiveType ? effectiveType.toUpperCase() : 'DESCONOCIDO');
+  netType.textContent = label;
+
+  // nivel de barras en base a effectiveType + downlink
+  let level = 3, quality = 'warn';
+  if(effectiveType === '4g' || downlink >= 5){ level = 5; quality = ''; }
+  else if(effectiveType === '3g' || downlink >= 1.5){ level = 3; quality = 'warn'; }
+  else if(effectiveType === '2g' || downlink >= 0.4){ level = 2; quality = 'weak'; }
+  else if(effectiveType === 'slow-2g'){ level = 1; quality = 'weak'; }
+
+  renderBars(level, quality);
+  netDot.className = 'status-dot ' + (level >= 4 ? 'ok' : level >= 2 ? 'warn' : 'off');
+
+  netDownlink.textContent = downlink !== undefined ? downlink.toFixed(1) : '—';
+  netRtt.textContent = rtt !== undefined ? Math.round(rtt) : '—';
+  netSave.textContent = saveData ? 'ON' : 'OFF';
+
+  netNote.innerHTML = `Fuente: Network Information API. <b>${effectiveType ? effectiveType.toUpperCase() : '—'}</b> efectivo. Estos valores son estimaciones del navegador, no dBm real.`;
+}
+
+if(navigator.connection){
+  navigator.connection.addEventListener('change', updateNetwork);
+}
+window.addEventListener('online', updateNetwork);
+window.addEventListener('offline', updateNetwork);
+updateNetwork();
+setInterval(updateNetwork, 4000);
+
+// ---------- BRÚJULA DE SEÑAL (GPS) ----------
+const compassDot = document.getElementById('compass-dot');
+const compassLive = document.getElementById('compass-live');
+const compassTarget = document.getElementById('compass-target');
+const compassNote = document.getElementById('compass-note');
+const compassStartBtn = document.getElementById('compass-start');
+const compassResetBtn = document.getElementById('compass-reset');
+const compassDial = document.getElementById('compass-dial');
+const compassNeedle = document.getElementById('compass-needle');
+const scopeMovilBtn = document.getElementById('scope-movil');
+const scopeWifiBtn = document.getElementById('scope-wifi');
+
+const mapping = {
+  movil: { log: [], best: null },
+  wifi: { log: [], best: null }
+};
+let activeScope = 'movil';
+let compassActive = false;
+let currentPos = null;
+let currentHeading = 0;
+let headingKnown = false;
+let watchId = null;
+let sampleTimer = null;
+let orientationHandler = null;
+
+function toRad(d){ return d * Math.PI / 180; }
+function toDeg(r){ return r * 180 / Math.PI; }
+
+function bearing(lat1, lon1, lat2, lon2){
+  const dLon = toRad(lon2 - lon1);
+  const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+  const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
+function distanceMeters(lat1, lon1, lat2, lon2){
+  const R = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function compassLabel(deg){
+  const dirs = ['N','NE','E','SE','S','SO','O','NO'];
+  return dirs[Math.round(deg / 45) % 8];
+}
+
+function setScope(scope){
+  activeScope = scope;
+  scopeMovilBtn.classList.toggle('active', scope === 'movil');
+  scopeWifiBtn.classList.toggle('active', scope === 'wifi');
+  refreshCompassDisplay();
+}
+scopeMovilBtn.addEventListener('click', () => setScope('movil'));
+scopeWifiBtn.addEventListener('click', () => setScope('wifi'));
+
+async function miniSpeedTest(bytes){
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const url = `https://speed.cloudflare.com/__down?bytes=${bytes}&cachebust=${Date.now()}`;
+    const t0 = performance.now();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'arraybuffer';
+    xhr.onload = () => {
+      const elapsed = (performance.now() - t0) / 1000;
+      if(elapsed <= 0) return reject(new Error('sin datos'));
+      resolve((bytes * 8 / 1e6) / elapsed);
+    };
+    xhr.onerror = () => reject(new Error('sin red'));
+    xhr.timeout = 8000;
+    xhr.ontimeout = () => reject(new Error('timeout'));
+    xhr.send();
+  });
+}
+
+function handleOrientation(e){
+  let heading;
+  if(e.webkitCompassHeading !== undefined){
+    heading = e.webkitCompassHeading;
+  } else if(e.alpha !== null && e.alpha !== undefined){
+    heading = (360 - e.alpha) % 360;
+  }
+  if(heading !== undefined && !Number.isNaN(heading)){
+    currentHeading = heading;
+    headingKnown = true;
+  }
+}
+
+function refreshCompassDisplay(){
+  const state = mapping[activeScope];
+  const last = state.log[state.log.length - 1];
+  compassLive.innerHTML = last ? last.mbps.toFixed(1) + '<span class="unit">Mbps ahora</span>' : '—<span class="unit">Mbps ahora</span>';
+
+  if(!currentPos || !state.best){
+    compassTarget.textContent = compassActive ? 'Buscando primera referencia GPS…' : 'Presioná «Iniciar mapeo» y caminá despacio por la casa.';
+    compassNeedle.style.opacity = '0.15';
+    return;
+  }
+
+  const dist = distanceMeters(currentPos.lat, currentPos.lon, state.best.lat, state.best.lon);
+  const brg = bearing(currentPos.lat, currentPos.lon, state.best.lat, state.best.lon);
+
+  compassDial.style.transform = `rotate(${-currentHeading}deg)`;
+
+  if(dist < 4){
+    compassNeedle.classList.add('arrived');
+    compassNeedle.style.opacity = '';
+    compassTarget.innerHTML = `Estás en el <b>mejor punto</b> detectado (${state.best.mbps.toFixed(1)} Mbps).`;
+  } else {
+    compassNeedle.classList.remove('arrived');
+    compassNeedle.style.opacity = '1';
+    compassNeedle.style.transform = `rotate(${brg - currentHeading}deg)`;
+    compassTarget.innerHTML = `Mejor punto: <b>${state.best.mbps.toFixed(1)} Mbps</b> a ~${Math.round(dist)} m hacia el ${compassLabel(brg)}.`;
+  }
+}
+
+function recordSample(mbps){
+  if(!currentPos) return;
+  const state = mapping[activeScope];
+  const sample = { lat: currentPos.lat, lon: currentPos.lon, mbps, t: Date.now() };
+  state.log.push(sample);
+  if(!state.best || mbps > state.best.mbps){
+    state.best = { lat: currentPos.lat, lon: currentPos.lon, mbps };
+  }
+  refreshCompassDisplay();
+}
+
+async function doSample(){
+  try{
+    const mbps = await miniSpeedTest(150000);
+    compassDot.className = 'status-dot ok';
+    recordSample(mbps);
+  }catch(err){
+    const conn = navigator.connection;
+    if(conn && conn.downlink !== undefined){
+      compassDot.className = 'status-dot warn';
+      recordSample(conn.downlink);
+    } else {
+      compassDot.className = 'status-dot off';
+      compassNote.textContent = 'No se pudo medir en este punto (sin conexión momentánea). Sigue caminando, reintenta solo.';
+    }
+  }
+}
+
+async function startCompass(){
+  if(!navigator.geolocation){
+    compassNote.textContent = 'Este navegador no soporta geolocalización.';
+    return;
+  }
+
+  if(window.isSecureContext === false){
+    compassNote.textContent = 'Esta página no está en un contexto seguro (HTTPS). El navegador va a bloquear el acceso al GPS/brújula. Abrí la app desde un enlace https o subila a un hosting con HTTPS.';
+    return;
+  }
+
+  if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+    try{
+      const res = await DeviceOrientationEvent.requestPermission();
+      if(res !== 'granted'){
+        compassNote.textContent = 'Sin permiso de orientación, la flecha va a apuntar sin corregir por hacia dónde mirás el teléfono.';
+      }
+    }catch(e){ /* sigue igual */ }
+  }
+
+  orientationHandler = handleOrientation;
+  window.addEventListener('deviceorientationabsolute', orientationHandler, true);
+  window.addEventListener('deviceorientation', orientationHandler, true);
+
+  watchId = navigator.geolocation.watchPosition((pos) => {
+    currentPos = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
+    refreshCompassDisplay();
+  }, (err) => {
+    compassDot.className = 'status-dot off';
+    compassNote.textContent = `No se pudo acceder al GPS: ${err.message}. Revisá los permisos de ubicación.`;
+  }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 });
+
+  compassActive = true;
+  compassStartBtn.textContent = 'Detener mapeo';
+  compassDot.className = 'status-dot warn';
+  compassNote.textContent = 'Mapeando… caminá despacio. La flecha se va a corregir a medida que junta mediciones.';
+
+  doSample();
+  sampleTimer = setInterval(doSample, 4500);
+}
+
+function stopCompass(){
+  compassActive = false;
+  compassStartBtn.textContent = 'Iniciar mapeo';
+  compassDot.className = 'status-dot idle';
+  if(watchId !== null){ navigator.geolocation.clearWatch(watchId); watchId = null; }
+  if(sampleTimer){ clearInterval(sampleTimer); sampleTimer = null; }
+  if(orientationHandler){
+    window.removeEventListener('deviceorientationabsolute', orientationHandler, true);
+    window.removeEventListener('deviceorientation', orientationHandler, true);
+    orientationHandler = null;
+  }
+  compassNote.textContent = 'Mapeo detenido. Los puntos ya medidos se mantienen — presioná «Iniciar mapeo» para seguir sumando.';
+}
+
+compassStartBtn.addEventListener('click', () => {
+  compassActive ? stopCompass() : startCompass();
+});
+
+compassResetBtn.addEventListener('click', () => {
+  mapping[activeScope].log = [];
+  mapping[activeScope].best = null;
+  refreshCompassDisplay();
+  compassNote.textContent = `Recorrido de "${activeScope === 'movil' ? 'Datos móviles' : 'Wifi'}" reiniciado.`;
+});
+
+refreshCompassDisplay();
+
+// ---------- PERMISOS ----------
+const permBtn = document.getElementById('perm-btn');
+const permDot = document.getElementById('perm-dot');
+const permNote = document.getElementById('perm-note');
+
+document.getElementById('diag-protocol').textContent = location.protocol;
+document.getElementById('diag-secure').textContent = window.isSecureContext ? 'sí' : 'NO';
+document.getElementById('diag-geo').textContent = navigator.geolocation ? 'disponible' : 'ausente';
+if(!window.isSecureContext){
+  permDot.className = 'status-dot off';
+  permNote.innerHTML = `Estás en <b>${location.protocol}</b> sin contexto seguro. Por eso el navegador va a bloquear GPS/brújula sin mostrarte ni siquiera el cartel de permiso. Necesitás abrir esta página vía <b>https://</b> — ver instrucciones abajo del botón.`;
+}
+
+async function checkPermissionsState(){
+  if(navigator.permissions && navigator.permissions.query){
+    try{
+      const geoPerm = await navigator.permissions.query({ name: 'geolocation' });
+      if(geoPerm.state === 'granted'){
+        permDot.className = 'status-dot ok';
+        permNote.textContent = 'Ubicación ya autorizada. Tocá el botón igual si querés confirmar también la orientación (brújula).';
+      } else if(geoPerm.state === 'denied'){
+        permDot.className = 'status-dot off';
+        permNote.textContent = 'Ubicación bloqueada para este sitio. Entrá a los ajustes del navegador/sistema y habilitala manualmente.';
+      }
+    }catch(e){ /* algunos navegadores no soportan consultar este permiso */ }
+  }
+}
+checkPermissionsState();
+
+permBtn.addEventListener('click', async () => {
+  permDot.className = 'status-dot warn';
+  permNote.textContent = 'Pidiendo permisos… puede aparecer un cartel del sistema, tocá "Permitir".';
+  window.__permT0 = performance.now();
+
+  let geoOk = false;
+  let oriOk = true;
+  let geoErrCode = null;
+  let geoErrInstant = false;
+
+  try{
+    const t0 = performance.now();
+    const pos = await new Promise((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 })
+    );
+    currentPos = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
+    geoOk = true;
+  }catch(e){
+    geoOk = false;
+    geoErrCode = e.code;
+    // Si falla en menos de ~300ms, nunca llegó a mostrarse un cartel del sistema:
+    // el navegador/iframe está bloqueando el permiso de entrada, no fue un rechazo del usuario.
+    geoErrInstant = (performance.now() - (window.__permT0 || performance.now())) < 300;
+  }
+
+  if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+    try{
+      const res = await DeviceOrientationEvent.requestPermission();
+      oriOk = (res === 'granted');
+    }catch(e){
+      oriOk = false;
+    }
+  }
+
+  if(geoOk && oriOk){
+    permDot.className = 'status-dot ok';
+    permNote.textContent = 'Listo: ubicación y orientación autorizadas. Ya podés usar la brújula de señal. Bluetooth te lo pide aparte, más abajo, cuando busques un dispositivo.';
+  } else if(!geoOk){
+    permDot.className = 'status-dot off';
+    if(geoErrCode === 1 && geoErrInstant){
+      permNote.innerHTML = '<b>No apareció ningún cartel del sistema</b> — señal de que esta vista previa está bloqueando el permiso antes de preguntarte. Abrí el archivo directamente en Chrome o Safari de tu teléfono (no dentro de la vista previa de Claude) y probá ahí.';
+    } else if(geoErrCode === 1){
+      permNote.textContent = 'Rechazaste el permiso de ubicación (o quedó bloqueado de una vez anterior). Entrá a Ajustes del navegador → Permisos del sitio → Ubicación, y ponelo en "Permitir".';
+    } else if(geoErrCode === 2){
+      permNote.textContent = 'El GPS no pudo obtener tu posición ahora mismo. Probá salir a un lugar más abierto o activar la ubicación del sistema en tu teléfono.';
+    } else if(geoErrCode === 3){
+      permNote.textContent = 'Se agotó el tiempo de espera buscando el GPS. Reintentá; a veces el primer intento tarda más.';
+    } else {
+      permNote.textContent = 'No se pudo obtener la ubicación. Reintentá tocando el botón de nuevo.';
+    }
+  } else {
+    permDot.className = 'status-dot warn';
+    permNote.textContent = 'Ubicación autorizada, pero la orientación no. La flecha de la brújula va a funcionar sin corregirse según hacia dónde apunta el teléfono.';
+  }
+
+  refreshCompassDisplay();
+});
+
+// ---------- TEST DE VELOCIDAD REAL ----------
+const speedDot = document.getElementById('speed-dot');
+const speedDownEl = document.getElementById('speed-down');
+const speedUpEl = document.getElementById('speed-up');
+const speedDownFill = document.getElementById('speed-down-fill');
+const speedUpFill = document.getElementById('speed-up-fill');
+const speedBtn = document.getElementById('speed-btn');
+const speedNote = document.getElementById('speed-note');
+
+function setSpeedValue(el, mbps){
+  el.innerHTML = mbps.toFixed(1) + '<span class="unit">Mbps</span>';
+}
+
+function testDownload(bytes){
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const url = `https://speed.cloudflare.com/__down?bytes=${bytes}&cachebust=${Date.now()}`;
+    let startTime = null;
+    xhr.open('GET', url, true);
+    xhr.responseType = 'arraybuffer';
+    xhr.onloadstart = () => { startTime = performance.now(); };
+    xhr.onprogress = (e) => {
+      if(!startTime) return;
+      const elapsed = (performance.now() - startTime) / 1000;
+      if(elapsed > 0.1){
+        const mbps = (e.loaded * 8 / 1e6) / elapsed;
+        setSpeedValue(speedDownEl, mbps);
+        speedDownFill.style.width = Math.min(100, (e.loaded / bytes) * 100) + '%';
+      }
+    };
+    xhr.onload = () => {
+      const elapsed = (performance.now() - startTime) / 1000;
+      resolve((bytes * 8 / 1e6) / elapsed);
+    };
+    xhr.onerror = () => reject(new Error('fallo de red en descarga'));
+    xhr.send();
+  });
+}
+
+function testUpload(bytes){
+  return new Promise((resolve, reject) => {
+    const data = new Uint8Array(bytes);
+    const blob = new Blob([data]);
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', 'https://speed.cloudflare.com/__up', true);
+    const startTime = performance.now();
+    xhr.upload.onprogress = (e) => {
+      const elapsed = (performance.now() - startTime) / 1000;
+      if(elapsed > 0.1){
+        const mbps = (e.loaded * 8 / 1e6) / elapsed;
+        setSpeedValue(speedUpEl, mbps);
+        speedUpFill.style.width = Math.min(100, (e.loaded / bytes) * 100) + '%';
+      }
+    };
+    xhr.onload = () => {
+      const elapsed = (performance.now() - startTime) / 1000;
+      resolve((bytes * 8 / 1e6) / elapsed);
+    };
+    xhr.onerror = () => reject(new Error('fallo de red en subida'));
+    xhr.send(blob);
+  });
+}
+
+speedBtn.addEventListener('click', async () => {
+  speedBtn.disabled = true;
+  speedDot.className = 'status-dot warn';
+  speedDownFill.style.width = '0%';
+  speedUpFill.style.width = '0%';
+  speedDownEl.innerHTML = '—<span class="unit">Mbps</span>';
+  speedUpEl.innerHTML = '—<span class="unit">Mbps</span>';
+
+  try{
+    speedNote.textContent = 'Midiendo bajada…';
+    const downMbps = await testDownload(20_000_000); // 20 MB
+    setSpeedValue(speedDownEl, downMbps);
+    speedDownFill.style.width = '100%';
+
+    speedNote.textContent = 'Midiendo subida…';
+    const upMbps = await testUpload(8_000_000); // 8 MB
+    setSpeedValue(speedUpEl, upMbps);
+    speedUpFill.style.width = '100%';
+
+    speedDot.className = 'status-dot ok';
+    speedNote.innerHTML = `Test completo. Bajada: <b>${downMbps.toFixed(1)} Mbps</b> · Subida: <b>${upMbps.toFixed(1)} Mbps</b>. Medido con transferencia real de datos.`;
+  }catch(err){
+    speedDot.className = 'status-dot off';
+    speedNote.innerHTML = `No se pudo completar el test (${err.message}). Revisá tu conexión e intentá de nuevo.`;
+  }finally{
+    speedBtn.disabled = false;
+  }
+});
+
+// ---------- BLUETOOTH ----------
+const btDot = document.getElementById('bt-dot');
+const btStatus = document.getElementById('bt-status');
+const btNote = document.getElementById('bt-note');
+const btScanBtn = document.getElementById('bt-scan-btn');
+const btWatchBtn = document.getElementById('bt-watch-btn');
+const btDevices = document.getElementById('bt-devices');
+const btRadar = document.getElementById('bt-radar');
+
+let currentDevice = null;
+
+function addDeviceRow(name, rssiText){
+  btDevices.innerHTML = '';
+  const row = document.createElement('div');
+  row.className = 'device';
+  row.innerHTML = `<span class="name">${name}</span><span class="rssi" id="bt-rssi-val">${rssiText}</span>`;
+  btDevices.appendChild(row);
+}
+
+if(!navigator.bluetooth){
+  btStatus.textContent = 'No disponible';
+  btDot.className = 'status-dot off';
+  btScanBtn.disabled = true;
+  btNote.innerHTML = window.isSecureContext === false
+    ? 'Bluetooth necesita HTTPS. Esta página no está en un contexto seguro, así que el navegador lo bloquea directamente.'
+    : 'Este navegador no soporta Web Bluetooth. Probá con <b>Chrome en Android</b> o Chrome/Edge de escritorio.';
+} else {
+  btScanBtn.addEventListener('click', async () => {
+    try{
+      btRadar.classList.add('active');
+      btStatus.textContent = 'Buscando…';
+      btDot.className = 'status-dot warn';
+
+      const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: []
+      });
+
+      currentDevice = device;
+      btRadar.classList.remove('active');
+      btStatus.textContent = 'Emparejado';
+      btDot.className = 'status-dot ok';
+      addDeviceRow(device.name || 'Dispositivo sin nombre', '—');
+
+      if('watchAdvertisements' in device){
+        btWatchBtn.style.display = 'inline-block';
+      } else {
+        btNote.innerHTML = 'Dispositivo detectado. Este navegador no soporta lectura de RSSI en vivo (<code>watchAdvertisements</code>).';
+      }
+
+    }catch(err){
+      btRadar.classList.remove('active');
+      btStatus.textContent = 'Cancelado';
+      btDot.className = 'status-dot idle';
+      btNote.innerHTML = `No se seleccionó ningún dispositivo (${err.message || 'cancelado por el usuario'}).`;
+    }
+  });
+
+  btWatchBtn.addEventListener('click', async () => {
+    if(!currentDevice) return;
+    try{
+      btDot.className = 'status-dot ok';
+      btRadar.classList.add('active');
+      btStatus.textContent = 'Señal en vivo';
+
+      currentDevice.addEventListener('advertisementreceived', (event) => {
+        const rssiVal = document.getElementById('bt-rssi-val');
+        if(rssiVal && event.rssi !== undefined){
+          rssiVal.textContent = event.rssi + ' dBm';
+        }
+      });
+
+      await currentDevice.watchAdvertisements();
+      btNote.innerHTML = 'Leyendo anuncios BLE en tiempo real. La señal se actualiza cuando el dispositivo transmite.';
+    }catch(err){
+      btNote.innerHTML = `No se pudo iniciar la lectura en vivo: ${err.message}. Puede requerir activar una flag experimental de Chrome.`;
+    }
+  });
+}
+</script>
+</body>
+</html>
