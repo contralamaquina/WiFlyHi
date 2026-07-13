@@ -380,6 +380,11 @@
       </div>
     </div>
 
+    <div class="compass-btns" id="router-btns" style="display:none;">
+      <button id="mark-router-btn">📍 Marcar router acá</button>
+      <button id="forget-router-btn" class="btn-secondary">Olvidar</button>
+    </div>
+
     <div class="compass-btns">
       <button id="compass-start">Iniciar mapeo</button>
       <button id="compass-reset" class="btn-secondary">Reiniciar</button>
@@ -437,6 +442,58 @@
     <div class="device-list" id="bt-devices"></div>
 
     <div class="note" id="bt-note">Bluetooth vía navegador requiere permiso explícito por dispositivo y solo funciona en Chrome/Edge (Android o escritorio). No hay escaneo pasivo por seguridad.</div>
+  </div>
+
+  <!-- BATERÍA DEL EQUIPO -->
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title"><span class="idx">05</span>Batería del Equipo</div>
+      <span class="status-dot idle" id="batt-dot"></span>
+    </div>
+
+    <div class="gauge-row">
+      <div class="progress" style="flex:1; height:22px; border-radius:5px;">
+        <div class="fill" id="batt-fill" style="height:100%; border-radius:5px;"></div>
+      </div>
+      <div class="readout" style="flex:0 0 auto; min-width:70px; text-align:center;">
+        <div class="big" id="batt-level">—</div>
+        <div class="lbl">nivel</div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><div class="v" id="batt-status">—</div><div class="k">estado</div></div>
+      <div class="metric"><div class="v" id="batt-time">—</div><div class="k">tiempo est.</div></div>
+    </div>
+
+    <div class="note" id="batt-note">Detectando compatibilidad…</div>
+  </div>
+
+  <!-- DETECTOR ELECTROMAGNÉTICO -->
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title"><span class="idx">06</span>Detector Electromagnético</div>
+      <span class="status-dot idle" id="em-dot"></span>
+    </div>
+
+    <div class="gauge-row">
+      <div class="progress" style="flex:1; height:22px; border-radius:5px;">
+        <div class="fill" id="em-fill" style="height:100%; border-radius:5px;"></div>
+      </div>
+      <div class="readout" style="flex:0 0 auto; min-width:80px; text-align:center;">
+        <div class="big" id="em-value">—</div>
+        <div class="lbl">µT</div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><div class="v" id="em-baseline">—</div><div class="k">línea base µT</div></div>
+      <div class="metric"><div class="v" id="em-deviation">—</div><div class="k">desvío</div></div>
+    </div>
+
+    <button id="em-start-btn">Iniciar detector</button>
+
+    <div class="note" id="em-note">Mide el campo magnético crudo del teléfono. El campo de la Tierra ronda 25-65 µT y es bastante estable; si un metal grande, electrónica o un cable de alta tensión distorsiona la lectura, te avisa. Es una señal aproximada, no localiza el objeto. Solo funciona en Chrome para Android (Generic Sensor API).</div>
   </div>
 
   <footer>
@@ -562,6 +619,19 @@ let watchId = null;
 let sampleTimer = null;
 let orientationHandler = null;
 
+// Ubicación real del router, marcada a mano una vez por el usuario. Se guarda
+// en localStorage porque esta app corre como sitio propio (Vercel/GitHub Pages),
+// no como vista previa embebida, así que el almacenamiento del navegador funciona normal.
+let routerLocation = null;
+try{
+  const savedRouter = localStorage.getItem('ms_router_location');
+  if(savedRouter) routerLocation = JSON.parse(savedRouter);
+}catch(e){ /* localStorage no disponible, sigue sin guardado persistente */ }
+
+const routerBtnsWrap = document.getElementById('router-btns');
+const markRouterBtn = document.getElementById('mark-router-btn');
+const forgetRouterBtn = document.getElementById('forget-router-btn');
+
 function toRad(d){ return d * Math.PI / 180; }
 function toDeg(r){ return r * 180 / Math.PI; }
 
@@ -589,10 +659,38 @@ function setScope(scope){
   activeScope = scope;
   scopeMovilBtn.classList.toggle('active', scope === 'movil');
   scopeWifiBtn.classList.toggle('active', scope === 'wifi');
+  routerBtnsWrap.style.display = (scope === 'wifi') ? 'flex' : 'none';
+  forgetRouterBtn.style.display = (scope === 'wifi' && routerLocation) ? 'inline-block' : 'none';
+  compassNote.textContent = scope === 'wifi'
+    ? (routerLocation
+        ? 'Modo Wifi: la flecha apunta directo a la ubicación marcada del router. Tocá "Olvidar" si te mudaste el router de lugar.'
+        : 'Modo Wifi: pará justo al lado del router y tocá "Marcar router acá". La flecha va a apuntar directo ahí siempre, sin necesidad de caminar buscando.')
+    : 'Modo Datos móviles: no hay forma de saber dónde está la antena celular (esa información no la exponen los navegadores ni casi ningún sistema operativo), así que la flecha señala hacia el mejor punto que midas caminando por la casa.';
   refreshCompassDisplay();
 }
 scopeMovilBtn.addEventListener('click', () => setScope('movil'));
 scopeWifiBtn.addEventListener('click', () => setScope('wifi'));
+
+markRouterBtn.addEventListener('click', () => {
+  if(!currentPos){
+    compassNote.textContent = 'Todavía no tengo tu ubicación. Tocá "Dar permisos ahora" arriba de todo, o "Iniciar mapeo" acá abajo, y volvé a intentar parado al lado del router.';
+    return;
+  }
+  routerLocation = { lat: currentPos.lat, lon: currentPos.lon, acc: currentPos.acc };
+  try{ localStorage.setItem('ms_router_location', JSON.stringify(routerLocation)); }catch(e){}
+  forgetRouterBtn.style.display = 'inline-block';
+  compassNote.innerHTML = '<b>Router marcado.</b> La flecha en modo Wifi ahora apunta directo hacia acá, sin necesidad de caminar buscando.';
+  refreshCompassDisplay();
+});
+
+forgetRouterBtn.addEventListener('click', () => {
+  routerLocation = null;
+  try{ localStorage.removeItem('ms_router_location'); }catch(e){}
+  forgetRouterBtn.style.display = 'none';
+  compassNote.textContent = 'Router olvidado. Marcalo de nuevo parado a su lado cuando quieras.';
+  refreshCompassDisplay();
+});
+
 
 async function miniSpeedTest(bytes){
   return new Promise((resolve, reject) => {
@@ -633,15 +731,26 @@ function refreshCompassDisplay(){
 
   const accuracyEl = document.getElementById('compass-accuracy');
 
-  if(!currentPos || !state.best){
-    compassTarget.textContent = compassActive ? 'Buscando primera referencia GPS…' : 'Presioná «Iniciar mapeo» y caminá despacio por la casa.';
+  // En Wifi el destino es el router marcado a mano (posición real y fija).
+  // En Datos móviles no hay forma de saber dónde está la antena, así que el
+  // destino es el mejor punto medido caminando.
+  const isWifi = (activeScope === 'wifi');
+  const target = isWifi ? routerLocation : state.best;
+  const targetHasMbps = !isWifi;
+
+  if(!currentPos || !target){
+    if(isWifi){
+      compassTarget.textContent = 'Marcá la ubicación del router (botón de arriba) parado a su lado.';
+    } else {
+      compassTarget.textContent = compassActive ? 'Buscando primera referencia GPS…' : 'Presioná «Iniciar mapeo» y caminá despacio por la casa.';
+    }
     compassNeedle.style.opacity = '0.15';
     if(accuracyEl) accuracyEl.textContent = currentPos ? `Precisión GPS: ±${Math.round(currentPos.acc)} m` : '';
     return;
   }
 
-  const dist = distanceMeters(currentPos.lat, currentPos.lon, state.best.lat, state.best.lon);
-  const brg = bearing(currentPos.lat, currentPos.lon, state.best.lat, state.best.lon);
+  const dist = distanceMeters(currentPos.lat, currentPos.lon, target.lat, target.lon);
+  const brg = bearing(currentPos.lat, currentPos.lon, target.lat, target.lon);
 
   compassDial.style.transform = `rotate(${-currentHeading}deg)`;
 
@@ -666,12 +775,16 @@ function refreshCompassDisplay(){
   if(dist < arrivalThreshold){
     compassNeedle.classList.add('arrived');
     compassNeedle.style.opacity = '';
-    compassTarget.innerHTML = `Estás en el <b>mejor punto</b> detectado (${state.best.mbps.toFixed(1)} Mbps).`;
+    compassTarget.innerHTML = isWifi
+      ? `Estás al lado del <b>router</b>.`
+      : `Estás en el <b>mejor punto</b> detectado (${target.mbps.toFixed(1)} Mbps).`;
   } else {
     compassNeedle.classList.remove('arrived');
     compassNeedle.style.opacity = '1';
     compassNeedle.style.transform = `rotate(${brg - currentHeading}deg)`;
-    compassTarget.innerHTML = `Mejor punto: <b>${state.best.mbps.toFixed(1)} Mbps</b> a ~${Math.round(dist)} m hacia el ${compassLabel(brg)}.`;
+    compassTarget.innerHTML = isWifi
+      ? `El <b>router</b> está a ~${Math.round(dist)} m hacia el ${compassLabel(brg)}.`
+      : `Mejor punto: <b>${target.mbps.toFixed(1)} Mbps</b> a ~${Math.round(dist)} m hacia el ${compassLabel(brg)}.`;
   }
 }
 
@@ -1210,6 +1323,170 @@ if(!navigator.bluetooth){
     }
   });
 }
+
+// ---------- BATERÍA DEL EQUIPO ----------
+(function initBattery(){
+  const battDot = document.getElementById('batt-dot');
+  const battFill = document.getElementById('batt-fill');
+  const battLevel = document.getElementById('batt-level');
+  const battStatus = document.getElementById('batt-status');
+  const battTime = document.getElementById('batt-time');
+  const battNote = document.getElementById('batt-note');
+
+  if(!navigator.getBattery){
+    battDot.className = 'status-dot off';
+    battLevel.textContent = 'N/D';
+    battNote.textContent = 'Este navegador no expone la batería (Safari y Firefox la sacaron por privacidad). Probá en Chrome/Edge Android o escritorio.';
+    return;
+  }
+
+  navigator.getBattery().then((battery) => {
+    function fmtTime(sec){
+      if(sec === Infinity || sec === undefined || isNaN(sec)) return '—';
+      const h = Math.floor(sec / 3600);
+      const m = Math.round((sec % 3600) / 60);
+      return h > 0 ? `${h}h ${m}m` : `${m}m`;
+    }
+
+    function update(){
+      const pct = Math.round(battery.level * 100);
+      battLevel.textContent = pct + '%';
+      battFill.style.width = pct + '%';
+      battFill.className = 'fill ' + (pct <= 20 ? 'low' : pct <= 50 ? 'mid' : '') ;
+      // reutiliza clases de battery-bar para el color si aplica, si no cae al teal por defecto
+      if(pct <= 20){ battFill.style.background = 'var(--red)'; }
+      else if(pct <= 50){ battFill.style.background = 'var(--amber)'; }
+      else { battFill.style.background = ''; }
+
+      battStatus.textContent = battery.charging ? 'Cargando' : 'Sin cargar';
+      battDot.className = 'status-dot ' + (battery.charging ? 'ok' : (pct <= 20 ? 'off' : 'warn'));
+
+      if(battery.charging){
+        battTime.textContent = fmtTime(battery.chargingTime);
+      } else {
+        battTime.textContent = fmtTime(battery.dischargingTime);
+      }
+      battNote.textContent = 'Fuente: Battery Status API, dato real reportado por el sistema operativo de tu equipo.';
+    }
+
+    update();
+    battery.addEventListener('levelchange', update);
+    battery.addEventListener('chargingchange', update);
+    battery.addEventListener('chargingtimechange', update);
+    battery.addEventListener('dischargingtimechange', update);
+  }).catch(() => {
+    battDot.className = 'status-dot off';
+    battNote.textContent = 'No se pudo acceder a la batería en este navegador.';
+  });
+})();
+
+// ---------- DETECTOR ELECTROMAGNÉTICO (magnetómetro crudo) ----------
+(function initEMDetector(){
+  const emDot = document.getElementById('em-dot');
+  const emFill = document.getElementById('em-fill');
+  const emValue = document.getElementById('em-value');
+  const emBaseline = document.getElementById('em-baseline');
+  const emDeviation = document.getElementById('em-deviation');
+  const emStartBtn = document.getElementById('em-start-btn');
+  const emNote = document.getElementById('em-note');
+
+  let sensor = null;
+  let baseline = null;
+  let running = false;
+
+  function stopSensor(){
+    running = false;
+    if(sensor){ try{ sensor.stop(); }catch(e){} sensor = null; }
+    emStartBtn.textContent = 'Iniciar detector';
+    emDot.className = 'status-dot idle';
+  }
+
+  async function startSensor(){
+    if(typeof Magnetometer === 'undefined'){
+      emNote.innerHTML = 'Este navegador no expone el magnetómetro crudo (<code>Magnetometer</code> / Generic Sensor API). Anda en <b>Chrome para Android</b>; no está disponible en iPhone ni en la mayoría de navegadores de escritorio.';
+      emDot.className = 'status-dot off';
+      return;
+    }
+
+    if(window.isSecureContext === false){
+      emNote.textContent = 'Necesita HTTPS para funcionar. Esta página no está en un contexto seguro.';
+      emDot.className = 'status-dot off';
+      return;
+    }
+
+    try{
+      if(navigator.permissions && navigator.permissions.query){
+        try{
+          const perm = await navigator.permissions.query({ name: 'magnetometer' });
+          if(perm.state === 'denied'){
+            emNote.textContent = 'Permiso de magnetómetro bloqueado. Revisá los permisos del sitio en tu navegador.';
+            emDot.className = 'status-dot off';
+            return;
+          }
+        }catch(e){ /* algunos navegadores no soportan consultar este permiso puntual */ }
+      }
+
+      sensor = new Magnetometer({ frequency: 8 });
+      baseline = null;
+
+      sensor.addEventListener('reading', () => {
+        const magnitude = Math.sqrt(sensor.x**2 + sensor.y**2 + sensor.z**2);
+
+        if(baseline === null){
+          baseline = magnitude;
+        } else {
+          baseline = baseline * 0.985 + magnitude * 0.015; // línea base que se adapta lento
+        }
+
+        const deviationPct = ((magnitude - baseline) / baseline) * 100;
+
+        emValue.textContent = magnitude.toFixed(1);
+        emBaseline.textContent = baseline.toFixed(1);
+        emDeviation.textContent = (deviationPct >= 0 ? '+' : '') + deviationPct.toFixed(0) + '%';
+
+        const pctBar = Math.min(100, (magnitude / 150) * 100); // 150 µT como techo visual de referencia
+        emFill.style.width = pctBar + '%';
+
+        if(Math.abs(deviationPct) > 40){
+          emFill.style.background = 'var(--red)';
+          emDot.className = 'status-dot off';
+          emNote.innerHTML = `⚠ <b>Fuerte anomalía magnética detectada</b> (${deviationPct.toFixed(0)}%). Puede haber metal, electrónica o un cable de alta tensión muy cerca.`;
+        } else if(Math.abs(deviationPct) > 15){
+          emFill.style.background = 'var(--amber)';
+          emDot.className = 'status-dot warn';
+          emNote.textContent = `Desvío moderado respecto a la línea base (${deviationPct.toFixed(0)}%). Puede haber algo metálico cerca.`;
+        } else {
+          emFill.style.background = 'var(--teal)';
+          emDot.className = 'status-dot ok';
+          emNote.textContent = 'Campo magnético estable, sin anomalías cerca del rango de la línea base.';
+        }
+      });
+
+      sensor.addEventListener('error', (event) => {
+        emNote.textContent = `Error del sensor: ${event.error.name} — ${event.error.message}`;
+        emDot.className = 'status-dot off';
+        stopSensor();
+      });
+
+      sensor.start();
+      running = true;
+      emStartBtn.textContent = 'Detener detector';
+      emDot.className = 'status-dot warn';
+      emNote.textContent = 'Calibrando línea base… movete despacio, alejado de metales, los primeros segundos.';
+    }catch(err){
+      emNote.textContent = `No se pudo iniciar el magnetómetro: ${err.message}`;
+      emDot.className = 'status-dot off';
+    }
+  }
+
+  if(typeof Magnetometer === 'undefined'){
+    emNote.innerHTML = 'Este navegador no expone el magnetómetro crudo. Anda en <b>Chrome para Android</b>; no disponible en iPhone.';
+  }
+
+  emStartBtn.addEventListener('click', () => {
+    running ? stopSensor() : startSensor();
+  });
+})();
 </script>
 </body>
 </html>
