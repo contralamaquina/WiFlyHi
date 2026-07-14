@@ -156,15 +156,6 @@
   .btn-run:disabled{opacity:0.55; cursor:default;}
   .btn-run.busy{color:var(--amber); border-color:#8a6a35;}
 
-  .plan-row{display:flex; gap:8px; margin-bottom:10px;}
-  .plan-field{flex:1;}
-  .plan-field label{display:block; font-size:9px; color:var(--muted); letter-spacing:0.6px; text-transform:uppercase; margin-bottom:4px;}
-  .plan-field input{
-    width:100%; background:var(--bg); border:1px solid var(--line); border-radius:5px;
-    color:var(--cream); font-family:inherit; font-size:12px; padding:7px 8px;
-  }
-  .plan-field input:focus{outline:none; border-color:var(--teal-dim);}
-
   .speed-progress{height:8px; border-radius:4px; background:#111; overflow:hidden; margin-bottom:8px; display:none;}
   .speed-progress.show{display:block;}
   .speed-progress i{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--teal), var(--amber)); transition:width 0.15s linear;}
@@ -175,10 +166,6 @@
   .speed-card .dir{font-size:9px; color:var(--muted); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:4px;}
   .speed-card .val{font-family:'Big Shoulders Text', sans-serif; font-weight:700; font-size:22px; color:var(--cream); line-height:1;}
   .speed-card .val span{font-size:11px; color:var(--muted); font-family:'IBM Plex Mono', monospace; font-weight:400;}
-  .speed-card .cmp{font-size:10px; margin-top:5px; font-weight:600;}
-  .speed-card .cmp.ok{color:var(--teal);}
-  .speed-card .cmp.mid{color:var(--amber);}
-  .speed-card .cmp.bad{color:var(--red);}
 
   /* ---- Mapa de señal ---- */
   .map-wrap{position:relative; border-radius:8px; overflow:hidden; margin-bottom:10px; border:1px solid var(--line);}
@@ -286,28 +273,16 @@
         <span class="lbl">Test de velocidad real</span>
         <button class="btn-run" id="speed-run">Medir ahora</button>
       </div>
-      <div class="plan-row">
-        <div class="plan-field">
-          <label for="plan-down">Contratado ↓ (Mbps)</label>
-          <input type="number" id="plan-down" inputmode="decimal" min="0" step="0.1" placeholder="ej: 100">
-        </div>
-        <div class="plan-field">
-          <label for="plan-up">Contratado ↑ (Mbps)</label>
-          <input type="number" id="plan-up" inputmode="decimal" min="0" step="0.1" placeholder="ej: 50">
-        </div>
-      </div>
       <div class="speed-progress" id="speed-progress"><i id="speed-progress-fill"></i></div>
       <div class="speed-status" id="speed-status">Todavía no mediste. El test baja y sube unos MB de datos reales — usá wifi si tenés datos limitados.</div>
       <div class="speed-results">
         <div class="speed-card">
           <div class="dir">Bajada</div>
           <div class="val" id="speed-down-val">—<span> Mbps</span></div>
-          <div class="cmp" id="speed-down-cmp"></div>
         </div>
         <div class="speed-card">
           <div class="dir">Subida</div>
           <div class="val" id="speed-up-val">—<span> Mbps</span></div>
-          <div class="cmp" id="speed-up-cmp"></div>
         </div>
       </div>
     </div>
@@ -628,52 +603,17 @@
   updateNetDisplay(false);
 
   // ================= TEST DE VELOCIDAD REAL (bajada / subida) =================
-  const PLAN_KEY = 'rastro_v1_plan';
-  const planDownInput = document.getElementById('plan-down');
-  const planUpInput = document.getElementById('plan-up');
   const speedRunBtn = document.getElementById('speed-run');
   const speedStatus = document.getElementById('speed-status');
   const speedProgress = document.getElementById('speed-progress');
   const speedProgressFill = document.getElementById('speed-progress-fill');
   const speedDownVal = document.getElementById('speed-down-val');
   const speedUpVal = document.getElementById('speed-up-val');
-  const speedDownCmp = document.getElementById('speed-down-cmp');
-  const speedUpCmp = document.getElementById('speed-up-cmp');
-
-  function loadPlan(){
-    try{
-      const p = JSON.parse(localStorage.getItem(PLAN_KEY)) || {};
-      if(p.down) planDownInput.value = p.down;
-      if(p.up) planUpInput.value = p.up;
-    }catch(e){}
-  }
-  function savePlan(){
-    try{
-      localStorage.setItem(PLAN_KEY, JSON.stringify({ down: planDownInput.value, up: planUpInput.value }));
-    }catch(e){}
-  }
-  loadPlan();
-  planDownInput.addEventListener('change', savePlan);
-  planUpInput.addEventListener('change', savePlan);
 
   function connLabel(){
     if(conn && conn.type && conn.type !== 'unknown') return conn.type === 'wifi' ? 'wifi' : conn.type;
     if(conn && conn.effectiveType) return conn.effectiveType;
     return null;
-  }
-
-  function cmpClass(ratio){
-    if(ratio >= 0.8) return 'ok';
-    if(ratio >= 0.5) return 'mid';
-    return 'bad';
-  }
-  function renderCmp(el, measured, planStr){
-    const plan = parseFloat(planStr);
-    if(!plan || plan <= 0){ el.textContent = ''; el.className = 'cmp'; return; }
-    const ratio = measured / plan;
-    const pct = Math.round(ratio * 100);
-    el.textContent = pct + '% de lo contratado (' + plan + ' Mbps)';
-    el.className = 'cmp ' + cmpClass(ratio);
   }
 
   // Mide bajada leyendo el stream en vivo para poder mostrar progreso real.
@@ -746,7 +686,6 @@
         speedDownVal.innerHTML = liveMbps.toFixed(1) + '<span> Mbps</span>';
       });
       speedDownVal.innerHTML = downMbps.toFixed(1) + '<span> Mbps</span>';
-      renderCmp(speedDownCmp, downMbps, planDownInput.value);
 
       speedStatus.textContent = 'Midiendo subida…';
       const upMbps = await measureUpload(UP_BYTES, (frac, liveMbps) => {
@@ -754,7 +693,6 @@
         speedUpVal.innerHTML = liveMbps.toFixed(1) + '<span> Mbps</span>';
       });
       speedUpVal.innerHTML = upMbps.toFixed(1) + '<span> Mbps</span>';
-      renderCmp(speedUpCmp, upMbps, planUpInput.value);
 
       speedProgressFill.style.width = '100%';
       const tag = label ? ` (${label})` : '';
