@@ -233,6 +233,12 @@
     padding:0 12px 10px; font-size:11.5px; color:var(--muted); font-style:italic;
     white-space:pre-wrap; min-height:14px;
   }
+  .transcribe-settings{
+    display:flex; align-items:center; gap:8px; margin-top:10px; font-size:10.5px; color:var(--muted);
+  }
+  .transcribe-settings label{flex-shrink:0; letter-spacing:0.4px;}
+  .transcribe-settings input[type="range"]{flex:1; accent-color:var(--teal); height:4px;}
+  .transcribe-settings span{flex-shrink:0; color:var(--cream); font-weight:600; width:34px; text-align:right;}
 </style>
 </head>
 <body>
@@ -301,11 +307,17 @@
       <button class="btn-mini toggle" id="transcribe-btn">Transcribir</button>
       <button class="btn-mini" id="transcribe-clear" style="display:none;">Limpiar</button>
     </div>
+    <div class="transcribe-settings" id="transcribe-settings">
+      <label for="transcribe-pause">Pausa para cortar frase</label>
+      <input type="range" id="transcribe-pause" min="500" max="3000" step="100" value="1200">
+      <span id="transcribe-pause-val">1.2s</span>
+    </div>
+    <div class="speed-status" id="transcribe-status" style="display:none;"></div>
     <div class="transcript-box" id="transcript-box">
       <div class="transcript-text" id="transcript-text"></div>
       <div class="transcript-interim" id="transcript-interim"></div>
     </div>
-    <div class="note" id="transcribe-note">Pensado para guardar clases o conversaciones largas: el texto fluye seguido y solo separa en párrafos cuando hay una pausa real. A diferencia del resto de Rastro, esto envía el audio al servicio de reconocimiento de voz del navegador (no es local). Funciona mejor en Chrome/Android; puede no estar disponible en Safari/iOS.</div>
+    <div class="note" id="transcribe-note">Pensado para guardar clases o conversaciones largas: el texto fluye seguido y solo separa en párrafos cuando hay una pausa real. La voz se transcribe con un modelo (Whisper) que corre local, en tu teléfono — el audio nunca sale del dispositivo. La primera vez que transcribís descarga el modelo (~75MB, una sola vez); después queda guardado y funciona incluso sin internet. El corte de cada frase lo maneja este código, no el navegador, así que podés ajustar cuánto silencio hace falta para cortar con el control de arriba.</div>
 
     <div id="map-slot-sonido"></div>
   </div>
@@ -866,24 +878,48 @@
     }
   });
 
-  // ================= TRANSCRIPCIÓN DE VOZ =================
+  // ================= TRANSCRIPCIÓN DE VOZ (Whisper local, sin servidor) =================
+  // A diferencia de la versión anterior (Web Speech API), acá el audio nunca sale del
+  // teléfono: se graba con Web Audio, se corta en frases por silencio real (con la
+  // paciencia que el usuario configure) y cada frase se transcribe localmente con un
+  // modelo Whisper corriendo en un Web Worker (transformers.js + WASM/WebGPU).
   const TRANSCRIPT_KEY = 'rastro_v1_transcript';
-  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-  const PAUSE_BREAK_MS = 4000; // silencio > 4s entre frases => nuevo párrafo, no solo espacio
+  const PAUSE_KEY = 'rastro_v1_pause_ms';
+  const PAUSE_BREAK_MS = 4000;     // silencio > 4s entre frases transcriptas => nuevo párrafo
+  const MIN_SEGMENT_MS = 350;      // por debajo de esto, se descarta (ruido/blip, no habla)
+  const MAX_SEGMENT_MS = 20000;    // tope duro: si alguien habla sin pausar, cortamos igual
+  const SILENCE_DB = 16;           // por debajo de esto (escala 0-100, misma que el medidor) es "silencio"
 
   const transcribeBtn = document.getElementById('transcribe-btn');
   const transcribeClearBtn = document.getElementById('transcribe-clear');
   const transcribeNote = document.getElementById('transcribe-note');
+  const transcribeStatus = document.getElementById('transcribe-status');
+  const transcribePauseInput = document.getElementById('transcribe-pause');
+  const transcribePauseVal = document.getElementById('transcribe-pause-val');
   const transcriptBox = document.getElementById('transcript-box');
   const transcriptTextEl = document.getElementById('transcript-text');
   const transcriptInterimEl = document.getElementById('transcript-interim');
   const DEFAULT_TRANSCRIBE_NOTE = transcribeNote.textContent;
 
-  let recognition = null;       // instancia única, se reutiliza entre inicios/paradas
-  let transcribing = false;     // intención del usuario: ¿debería estar escuchando?
+  const canTranscribe = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.Worker && (window.AudioContext || window.webkitAudioContext));
+
+  let transcribing = false;       // intención del usuario: ¿debería estar escuchando?
   let sessionJustStarted = false;
   let lastFinalTs = 0;
   let transcriptText = '';
+
+  let pauseHoldMs = 1200;
+  try{
+    const savedPause = parseInt(localStorage.getItem(PAUSE_KEY), 10);
+    if(!isNaN(savedPause) && savedPause >= 500 && savedPause <= 3000) pauseHoldMs = savedPause;
+  }catch(e){}
+  transcribePauseInput.value = String(pauseHoldMs);
+  transcribePauseVal.textContent = (pauseHoldMs / 1000).toFixed(1) + 's';
+  transcribePauseInput.addEventListener('input', () => {
+    pauseHoldMs = parseInt(transcribePauseInput.value, 10);
+    transcribePauseVal.textContent = (pauseHoldMs / 1000).toFixed(1) + 's';
+    try{ localStorage.setItem(PAUSE_KEY, String(pauseHoldMs)); }catch(e){}
+  });
 
   function loadTranscript(){
     try{ transcriptText = localStorage.getItem(TRANSCRIPT_KEY) || ''; }catch(e){ transcriptText = ''; }
@@ -910,6 +946,7 @@
   // Agrega una frase finalizada al texto, como prosa continua (no línea por línea),
   // salvo que haya pasado una pausa larga, en cuyo caso arranca párrafo nuevo.
   function appendFinal(line){
+    if(!line) return;
     const now = Date.now();
     if(!transcriptText){
       transcriptText = fmtSessionHeader(now) + '\n' + line;
@@ -923,68 +960,198 @@
     sessionJustStarted = false;
     lastFinalTs = now;
     saveTranscript();
+    renderTranscript();
   }
 
-  function ensureRecognition(){
-    if(recognition) return recognition;
-    const r = new SpeechRec();
-    r.lang = 'es-UY';
-    r.continuous = true;
-    r.interimResults = true;
-    r.onresult = (e) => {
-      let interim = '';
-      for(let i = e.resultIndex; i < e.results.length; i++){
-        const res = e.results[i];
-        if(res.isFinal){
-          const line = res[0].transcript.trim();
-          if(line) appendFinal(line);
-        } else {
-          interim += res[0].transcript;
+  // ---- Worker: carga el modelo Whisper (transformers.js) y transcribe localmente ----
+  const WORKER_SRC = `
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+    env.allowLocalModels = false;
+    env.useBrowserCache = true; // así el modelo queda cacheado en el teléfono entre sesiones
+
+    let ready = null;
+    function getTranscriber(){
+      if(!ready){
+        ready = pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
+          quantized: true,
+          progress_callback: (p) => self.postMessage({ type:'progress', data:p })
+        });
+      }
+      return ready;
+    }
+
+    self.onmessage = async (e) => {
+      const msg = e.data;
+      if(msg.type === 'load'){
+        try{ await getTranscriber(); self.postMessage({ type:'ready' }); }
+        catch(err){ self.postMessage({ type:'error', error:String(err && err.message || err) }); }
+        return;
+      }
+      if(msg.type === 'transcribe'){
+        try{
+          const transcriber = await getTranscriber();
+          const out = await transcriber(msg.audio, { language:'spanish', task:'transcribe' });
+          self.postMessage({ type:'result', id: msg.id, text: (out && out.text || '').trim() });
+        }catch(err){
+          self.postMessage({ type:'result', id: msg.id, text:'', error:String(err && err.message || err) });
         }
       }
-      transcriptInterimEl.textContent = interim || (transcribing ? 'Escuchando…' : '');
-      renderTranscript();
     };
-    r.onerror = (e) => {
-      if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
-        transcribeNote.textContent = 'Permiso de micrófono denegado para la transcripción.';
-        stopTranscribe();
+  `;
+
+  let worker = null;
+  let modelState = 'idle'; // idle | loading | ready | error
+  function ensureWorker(){
+    if(worker) return worker;
+    const blobUrl = URL.createObjectURL(new Blob([WORKER_SRC], { type:'text/javascript' }));
+    worker = new Worker(blobUrl, { type:'module' });
+    worker.onmessage = (e) => {
+      const msg = e.data;
+      if(msg.type === 'progress'){
+        const p = msg.data;
+        if(p && p.status === 'progress' && typeof p.progress === 'number'){
+          transcribeStatus.style.display = 'block';
+          transcribeStatus.textContent = `Descargando modelo de voz (una vez, ~75MB)… ${Math.round(p.progress)}%`;
+        }
+      } else if(msg.type === 'ready'){
+        modelState = 'ready';
+        transcribeStatus.style.display = 'none';
+        pumpQueue();
+      } else if(msg.type === 'error'){
+        modelState = 'error';
+        transcribeStatus.style.display = 'block';
+        transcribeStatus.textContent = 'No se pudo cargar el modelo de voz: ' + msg.error;
+      } else if(msg.type === 'result'){
+        workerBusy = false;
+        if(msg.text) appendFinal(msg.text);
+        pumpQueue();
       }
-      // no-speech / network / aborted: se resuelven solos, onend reinicia enseguida
     };
-    r.onend = () => {
-      // El navegador corta la sesión de reconocimiento seguido (a veces después de cada
-      // frase, sobre todo en Android). Reiniciamos al toque para que se sienta continuo.
-      if(transcribing){
-        try{ r.start(); }
-        catch(err){ setTimeout(() => { if(transcribing){ try{ r.start(); }catch(e2){} } }, 120); }
-      }
-    };
-    recognition = r;
-    return r;
+    return worker;
   }
 
-  function startTranscribe(){
-    if(!SpeechRec){
-      transcribeNote.textContent = 'Este navegador no soporta transcripción por voz (anda en Chrome/Android; no en Safari/iOS).';
+  let workerBusy = false;
+  let nextSegId = 1;
+  const segmentQueue = [];
+  function pumpQueue(){
+    if(workerBusy || modelState !== 'ready' || segmentQueue.length === 0) return;
+    workerBusy = true;
+    const audio = segmentQueue.shift();
+    worker.postMessage({ type:'transcribe', id: nextSegId++, audio }, [audio.buffer]);
+  }
+  function queueSegment(audio){
+    segmentQueue.push(audio);
+    pumpQueue();
+  }
+
+  // ---- Resampleo simple a 16kHz (lo que espera Whisper) ----
+  function resampleTo16k(float32Data, sourceRate){
+    if(sourceRate === 16000) return float32Data;
+    const ratio = sourceRate / 16000;
+    const newLength = Math.max(1, Math.round(float32Data.length / ratio));
+    const out = new Float32Array(newLength);
+    for(let i = 0; i < newLength; i++){
+      const idx = i * ratio;
+      const lo = Math.floor(idx);
+      const hi = Math.min(lo + 1, float32Data.length - 1);
+      const frac = idx - lo;
+      out[i] = float32Data[lo] * (1 - frac) + float32Data[hi] * frac;
+    }
+    return out;
+  }
+
+  // ---- Captura de audio propia para transcripción (independiente del medidor de dB) ----
+  let tStream = null, tCtx = null, tSource = null, tProcessor = null, tMuteGain = null;
+  let segBlocks = [], segSamples = 0, segMs = 0, hasSpeech = false, silenceMs = 0;
+
+  function resetSegment(){
+    segBlocks = []; segSamples = 0; segMs = 0; hasSpeech = false; silenceMs = 0;
+  }
+
+  function finalizeSegment(){
+    if(segSamples === 0 || !hasSpeech || segMs < MIN_SEGMENT_MS){ resetSegment(); return; }
+    const merged = new Float32Array(segSamples);
+    let off = 0;
+    for(const b of segBlocks){ merged.set(b, off); off += b.length; }
+    resetSegment();
+    queueSegment(resampleTo16k(merged, tCtx.sampleRate));
+  }
+
+  function handleAudioProcess(e){
+    const input = e.inputBuffer.getChannelData(0);
+    const block = new Float32Array(input); // copia: el buffer original se reutiliza
+    let sum = 0;
+    for(let i = 0; i < block.length; i++) sum += block[i] * block[i];
+    const rms = Math.sqrt(sum / block.length);
+    const db = Math.max(0, Math.min(100, Math.round((20 * Math.log10(rms || 0.0001) + 100))));
+    const blockMs = (block.length / tCtx.sampleRate) * 1000;
+
+    if(db >= SILENCE_DB){ hasSpeech = true; silenceMs = 0; }
+    else { silenceMs += blockMs; }
+
+    segBlocks.push(block);
+    segSamples += block.length;
+    segMs += blockMs;
+
+    transcriptInterimEl.textContent = hasSpeech ? 'Escuchando…' : 'Escuchando… (esperando que hables)';
+
+    if((hasSpeech && silenceMs >= pauseHoldMs) || segMs >= MAX_SEGMENT_MS){
+      finalizeSegment();
+    }
+  }
+
+  async function startTranscribe(){
+    if(!canTranscribe){
+      transcribeNote.textContent = 'Este navegador no soporta grabación de audio o Web Workers, así que no puede transcribir localmente.';
       return;
     }
+    try{
+      tStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    }catch(err){
+      transcribeNote.textContent = err.name === 'NotAllowedError'
+        ? 'Permiso de micrófono denegado para la transcripción.'
+        : 'No se pudo activar el micrófono para transcribir: ' + err.message;
+      return;
+    }
+
     sessionJustStarted = transcriptText.length > 0; // si ya hay texto previo, marca nueva sesión
+    resetSegment();
+    tCtx = new (window.AudioContext || window.webkitAudioContext)();
+    tSource = tCtx.createMediaStreamSource(tStream);
+    tProcessor = tCtx.createScriptProcessor(4096, 1, 1);
+    tMuteGain = tCtx.createGain();
+    tMuteGain.gain.value = 0; // no queremos escuchar de vuelta el propio audio
+    tProcessor.onaudioprocess = handleAudioProcess;
+    tSource.connect(tProcessor);
+    tProcessor.connect(tMuteGain);
+    tMuteGain.connect(tCtx.destination);
+
     transcribing = true;
-    const r = ensureRecognition();
-    try{ r.start(); }catch(e){ /* ya puede estar corriendo */ }
     transcribeBtn.textContent = 'Detener transcripción';
     transcribeBtn.classList.add('active');
     transcribeNote.textContent = DEFAULT_TRANSCRIBE_NOTE;
     transcriptInterimEl.textContent = 'Escuchando…';
     renderTranscript();
     History.add('sonido', 'Transcripción de voz iniciada.');
+
+    ensureWorker();
+    if(modelState === 'idle'){
+      modelState = 'loading';
+      transcribeStatus.style.display = 'block';
+      transcribeStatus.textContent = 'Descargando modelo de voz (una vez, ~75MB)…';
+      worker.postMessage({ type:'load' });
+    }
   }
 
   function stopTranscribe(){
     const wasTranscribing = transcribing;
     transcribing = false;
-    if(recognition){ try{ recognition.stop(); }catch(e){} }
+    finalizeSegment(); // no perder la última frase en curso
+    if(tProcessor){ tProcessor.disconnect(); tProcessor.onaudioprocess = null; tProcessor = null; }
+    if(tSource){ tSource.disconnect(); tSource = null; }
+    if(tMuteGain){ tMuteGain.disconnect(); tMuteGain = null; }
+    if(tCtx){ tCtx.close(); tCtx = null; }
+    if(tStream){ tStream.getTracks().forEach(t => t.stop()); tStream = null; }
     transcribeBtn.textContent = 'Transcribir';
     transcribeBtn.classList.remove('active');
     transcriptInterimEl.textContent = '';
@@ -1006,7 +1173,7 @@
 
   loadTranscript();
   renderTranscript();
-  if(!SpeechRec) transcribeNote.textContent = 'Este navegador no soporta transcripción por voz (anda en Chrome/Android; no en Safari/iOS).';
+  if(!canTranscribe) transcribeNote.textContent = 'Este navegador no soporta grabación de audio o Web Workers, así que no puede transcribir localmente.';
 
   // ================= BOTÓN MAESTRO =================
   const powerBtn = document.getElementById('power-btn');
