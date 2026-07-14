@@ -3,7 +3,53 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Panel de Señal</title>
+<title>WiflyHi — Encontrá el Mejor Wifi y Medí tu Internet Real</title>
+<meta name="description" content="Medí la velocidad real de tu internet, encontrá el mejor punto de wifi en tu casa, y revisá batería, Bluetooth, ruido ambiente y campo magnético — todo en vivo, desde el navegador, sin instalar nada ni enviar datos a ningún servidor.">
+<meta name="robots" content="index, follow">
+<meta name="author" content="WiflyHi">
+<!-- ⚠️ REEMPLAZAR antes de publicar: poné acá tu URL real de Vercel (o dominio propio) -->
+<link rel="canonical" href="https://wiflyhi.vercel.app/">
+
+<!-- Open Graph / Facebook / WhatsApp / Slack -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://wiflyhi.vercel.app/">
+<meta property="og:title" content="WiflyHi — Encontrá el Mejor Wifi y Medí tu Internet Real">
+<meta property="og:description" content="Medí velocidad real, encontrá el mejor punto de wifi, y revisá batería, Bluetooth, ruido y campo magnético en vivo, sin instalar nada ni enviar datos a ningún servidor.">
+<meta property="og:image" content="https://wiflyhi.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="es_AR">
+<meta property="og:site_name" content="WiflyHi">
+
+<!-- Twitter / X Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="WiflyHi — Encontrá el Mejor Wifi y Medí tu Internet Real">
+<meta name="twitter:description" content="Medí velocidad real, encontrá el mejor punto de wifi, y revisá batería, Bluetooth, ruido y campo magnético en vivo, sin instalar nada ni enviar datos a ningún servidor.">
+<meta name="twitter:image" content="https://wiflyhi.vercel.app/og-image.png">
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1815">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WiflyHi">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "WiflyHi",
+  "url": "https://wiflyhi.vercel.app/",
+  "description": "Monitor de conectividad, velocidad real de internet, brújula de wifi, batería, Bluetooth, ruido ambiente y campo magnético del teléfono, en vivo y sin enviar datos a ningún servidor.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Android, iOS, Windows, macOS, Linux",
+  "browserRequirements": "Requiere JavaScript y HTTPS",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "inLanguage": "es"
+}
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Big+Shoulders+Text:wght@500;700;900&display=swap');
 
@@ -53,7 +99,9 @@
     margin:0;
     color:var(--cream);
     text-transform:uppercase;
+    display:flex; align-items:center; gap:9px;
   }
+  header h1 svg{ flex-shrink:0; }
   header .sub{
     font-size:10px;
     color:var(--muted);
@@ -392,11 +440,25 @@
 
   <header>
     <div>
-      <h1>Panel de Señal</h1>
-      <div class="sub">Monitor de conectividad · en vivo</div>
+      <h1>
+        <svg width="30" height="30" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="70" r="5.5" fill="var(--amber)"></circle>
+          <path d="M 22 46 A 34 34 0 0 1 50 32" fill="none" stroke="var(--teal)" stroke-width="7" stroke-linecap="round"></path>
+          <path d="M 32 52 A 22 22 0 0 1 50 44" fill="none" stroke="var(--amber)" stroke-width="7" stroke-linecap="round"></path>
+          <path d="M 41 60 A 10.5 10.5 0 0 1 50 56" fill="none" stroke="var(--amber)" stroke-width="7" stroke-linecap="round"></path>
+        </svg>
+        WiflyHi
+      </h1>
+      <div class="sub">Wifi, velocidad y señal · en vivo</div>
     </div>
     <div class="clock" id="clock">--:--:--</div>
   </header>
+
+  <!-- INSTALAR APP -->
+  <div class="panel" id="install-panel" style="padding:10px 14px;">
+    <button id="install-btn" style="display:none; width:100%;">Instalar app</button>
+    <div class="note" id="install-note" style="margin-top:0; border-top:none; padding-top:0;"></div>
+  </div>
 
   <!-- CONSOLA CENTRAL -->
   <div class="panel console-panel">
@@ -415,41 +477,47 @@
         <span class="node-txt">Red</span>
         <span class="node-live" id="live-red">—</span>
       </button>
-      <button class="console-node" id="node-compass" style="--a:-38.6deg;" title="Brújula">
+      <button class="console-node" id="node-compass" style="--a:-45deg;" title="Brújula">
         <span class="node-led" id="led-compass"></span>
         <span class="node-ico">🧭</span>
         <span class="node-txt">Brújula</span>
         <span class="node-live" id="live-compass">—</span>
       </button>
-      <button class="console-node" id="node-speed" style="--a:12.9deg;" title="Velocidad">
+      <button class="console-node" id="node-speed" style="--a:0deg;" title="Velocidad">
         <span class="node-led" id="led-speed"></span>
         <span class="node-ico">⚡</span>
         <span class="node-txt">Vel.</span>
         <span class="node-live" id="live-speed">—</span>
       </button>
-      <button class="console-node" id="node-bt" style="--a:64.3deg;" title="Bluetooth">
+      <button class="console-node" id="node-bt" style="--a:45deg;" title="Bluetooth">
         <span class="node-led" id="led-bt"></span>
         <span class="node-ico">🔷</span>
         <span class="node-txt">BT</span>
         <span class="node-live" id="live-bt">—</span>
       </button>
-      <button class="console-node" id="node-batt" style="--a:115.7deg;" title="Batería">
+      <button class="console-node" id="node-batt" style="--a:90deg;" title="Batería">
         <span class="node-led" id="led-batt"></span>
         <span class="node-ico">🔋</span>
         <span class="node-txt">Batería</span>
         <span class="node-live" id="live-batt">—</span>
       </button>
-      <button class="console-node" id="node-em" style="--a:167.1deg;" title="Electromagnético">
+      <button class="console-node" id="node-em" style="--a:135deg;" title="Electromagnético">
         <span class="node-led" id="led-em"></span>
         <span class="node-ico">🧲</span>
         <span class="node-txt">EM</span>
         <span class="node-live" id="live-em">—</span>
       </button>
-      <button class="console-node" id="node-noise" style="--a:218.6deg;" title="Ruido">
+      <button class="console-node" id="node-noise" style="--a:180deg;" title="Ruido">
         <span class="node-led" id="led-noise"></span>
         <span class="node-ico">🎙️</span>
         <span class="node-txt">Ruido</span>
         <span class="node-live" id="live-noise">—</span>
+      </button>
+      <button class="console-node" id="node-history" style="--a:225deg;" title="Historial">
+        <span class="node-led" id="led-history"></span>
+        <span class="node-ico">📊</span>
+        <span class="node-txt">Historial</span>
+        <span class="node-live" id="live-history">—</span>
       </button>
     </div>
 
@@ -675,6 +743,34 @@
     <div class="note" id="noise-note">Nivel <b>relativo</b> de sonido, no decibeles SPL calibrados (eso requiere hardware específico). Sirve para comparar "acá hay más o menos ruido que allá". El micrófono solo se activa mientras esta sección está encendida — nada se graba ni se envía a ningún lado, todo el análisis pasa en tu teléfono.</div>
   </div>
 
+  <!-- HISTORIAL Y GRÁFICOS -->
+  <div class="panel" id="panel-history">
+    <div class="panel-head">
+      <div class="panel-title"><span class="idx">08</span>Historial</div>
+      <span class="status-dot idle" id="history-dot"></span>
+    </div>
+
+    <div class="scope-toggle" id="history-tabs">
+      <button class="active" data-series="net">Red</button>
+      <button data-series="speed">Velocidad</button>
+      <button data-series="noise">Ruido</button>
+      <button data-series="em">EM</button>
+      <button data-series="battery">Batería</button>
+    </div>
+
+    <svg id="history-chart" viewBox="0 0 600 180" style="width:100%; height:140px; display:block; background:var(--ink); border-radius:6px; box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);"></svg>
+
+    <div class="metrics" style="margin-top:8px;">
+      <div class="metric"><div class="v" id="hist-last">—</div><div class="k">último</div></div>
+      <div class="metric"><div class="v" id="hist-min">—</div><div class="k">mínimo</div></div>
+      <div class="metric"><div class="v" id="hist-max">—</div><div class="k">máximo</div></div>
+    </div>
+
+    <button id="history-clear-btn" class="btn-secondary" style="margin-top:8px; width:100%;">Borrar historial</button>
+
+    <div class="note" id="history-note">Guarda hasta 60 mediciones por serie, local en tu teléfono. Nada se envía a ningún servidor.</div>
+  </div>
+
   <footer>
     Los navegadores no exponen dBm real de wifi/datos móviles — estos valores son estimaciones basadas en velocidad y latencia reportadas por el sistema.
   </footer>
@@ -688,6 +784,128 @@ function tickClock(){
   document.getElementById('clock').textContent = d.toLocaleTimeString('es-AR', {hour12:false});
 }
 setInterval(tickClock, 1000); tickClock();
+
+// ---------- HISTORIAL (guarda series de mediciones en localStorage) ----------
+const History = (function(){
+  const KEY = 'ms_history_v1';
+  const MAX_POINTS = 60;
+  let data = {};
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw) data = JSON.parse(raw) || {};
+  }catch(e){ data = {}; /* localStorage no disponible o dato corrupto: arranca en blanco */ }
+
+  function persist(){
+    try{ localStorage.setItem(KEY, JSON.stringify(data)); }
+    catch(e){ /* almacenamiento lleno o no disponible: el historial sigue en memoria igual */ }
+  }
+
+  return {
+    // minGapMs evita que una serie que se mide muy seguido (red, ruido) sature
+    // el gráfico con puntos casi idénticos.
+    push(series, value, minGapMs){
+      if(value === null || value === undefined || Number.isNaN(value)) return;
+      if(!data[series]) data[series] = [];
+      const arr = data[series];
+      const last = arr[arr.length - 1];
+      if(minGapMs && last && (Date.now() - last.t) < minGapMs) return;
+      arr.push({ t: Date.now(), v: value });
+      if(arr.length > MAX_POINTS) arr.splice(0, arr.length - MAX_POINTS);
+      persist();
+    },
+    get(series){ return data[series] || []; },
+    clearAll(){ data = {}; persist(); }
+  };
+})();
+
+// ---------- GRÁFICOS DEL HISTORIAL (sparklines en SVG, sin librerías) ----------
+(function initHistoryPanel(){
+  const svg = document.getElementById('history-chart');
+  const tabsWrap = document.getElementById('history-tabs');
+  const clearBtn = document.getElementById('history-clear-btn');
+  const lastEl = document.getElementById('hist-last');
+  const minEl = document.getElementById('hist-min');
+  const maxEl = document.getElementById('hist-max');
+  const historyDot = document.getElementById('history-dot');
+  if(!svg) return;
+
+  const SERIES_CONFIG = {
+    net:   { unit: 'Mbps', lines: [{ key: 'net_downlink', color: 'var(--teal)', label: 'bajada est.' }] },
+    speed: { unit: 'Mbps', lines: [{ key: 'speed_down', color: 'var(--teal)', label: 'bajada' }, { key: 'speed_up', color: 'var(--amber)', label: 'subida' }] },
+    noise: { unit: 'dB', lines: [{ key: 'noise_db', color: 'var(--teal)', label: 'nivel' }] },
+    em:    { unit: '%', lines: [{ key: 'em_deviation', color: 'var(--amber)', label: 'desvío' }] },
+    battery: { unit: '%', lines: [{ key: 'battery_level', color: 'var(--teal)', label: 'batería' }] }
+  };
+
+  let activeTab = 'net';
+
+  function svgLine(points, color){
+    if(points.length < 2) return '';
+    return `<polyline points="${points}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+
+  function render(){
+    const cfg = SERIES_CONFIG[activeTab];
+    const W = 600, H = 180, PAD = 14;
+    const lineSeries = cfg.lines.map(l => ({ ...l, data: History.get(l.key) }));
+    const allVals = lineSeries.flatMap(l => l.data.map(p => p.v));
+
+    if(allVals.length === 0){
+      svg.innerHTML = `<text x="${W/2}" y="${H/2}" fill="var(--muted)" font-size="12" text-anchor="middle" font-family="IBM Plex Mono, monospace">Sin datos aún — usá ese sensor y va a empezar a graficarse acá</text>`;
+      lastEl.textContent = '—'; minEl.textContent = '—'; maxEl.textContent = '—';
+      historyDot.className = 'status-dot idle';
+      return;
+    }
+
+    historyDot.className = 'status-dot ok';
+    let min = Math.min(...allVals), max = Math.max(...allVals);
+    if(min === max){ min -= 1; max += 1; }
+    const rangePad = (max - min) * 0.12;
+    min -= rangePad; max += rangePad;
+
+    function x(i, n){ return n <= 1 ? W / 2 : (i / (n - 1)) * (W - 24) + 12; }
+    function y(v){ return H - PAD - ((v - min) / (max - min)) * (H - PAD * 2); }
+
+    let markup = '';
+    for(let i = 0; i <= 2; i++){
+      const gy = PAD + i * ((H - PAD * 2) / 2);
+      markup += `<line x1="10" y1="${gy}" x2="${W - 10}" y2="${gy}" stroke="#3a352c" stroke-width="1" stroke-dasharray="3,4"/>`;
+    }
+
+    let lastPrimary = null;
+    lineSeries.forEach((l) => {
+      const n = l.data.length;
+      if(n === 0) return;
+      const pts = l.data.map((p, i) => `${x(i, n)},${y(p.v)}`).join(' ');
+      markup += svgLine(pts, l.color);
+      const lp = l.data[n - 1];
+      markup += `<circle cx="${x(n - 1, n)}" cy="${y(lp.v)}" r="4" fill="${l.color}"/>`;
+      if(lastPrimary === null) lastPrimary = lp.v;
+    });
+
+    svg.innerHTML = markup;
+    lastEl.textContent = lastPrimary !== null ? lastPrimary.toFixed(1) + ' ' + cfg.unit : '—';
+    minEl.textContent = Math.min(...allVals).toFixed(1) + ' ' + cfg.unit;
+    maxEl.textContent = Math.max(...allVals).toFixed(1) + ' ' + cfg.unit;
+  }
+
+  tabsWrap.querySelectorAll('button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      tabsWrap.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeTab = btn.dataset.series;
+      render();
+    });
+  });
+
+  clearBtn.addEventListener('click', () => {
+    History.clearAll();
+    render();
+  });
+
+  render();
+  setInterval(render, 5000); // refresca solo, por si otro panel siguió registrando datos
+})();
 
 // ---------- RED (Network Information API) ----------
 const netDot = document.getElementById('net-dot');
@@ -763,6 +981,8 @@ function updateNetwork(){
   netSave.textContent = saveData ? 'ON' : 'OFF';
 
   netNote.innerHTML = `Fuente: Network Information API. <b>${effectiveType ? effectiveType.toUpperCase() : '—'}</b> efectivo. Estos valores son estimaciones del navegador, no dBm real.`;
+
+  if(downlink !== undefined) History.push('net_downlink', downlink, 15000);
 }
 
 if(navigator.connection){
@@ -939,16 +1159,22 @@ function refreshCompassDisplay(){
 
   if(accuracyEl){
     const acc = Math.round(currentPos.acc || 0);
+    let msg, color;
     if(acc > 20){
-      accuracyEl.innerHTML = `⚠ Precisión GPS baja: ±${acc} m — puertas adentro puede fallar. Probá cerca de una ventana.`;
-      accuracyEl.style.color = 'var(--red)';
+      msg = `⚠ Precisión GPS baja: ±${acc} m — puertas adentro puede fallar. Probá cerca de una ventana.`;
+      color = 'var(--red)';
     } else if(acc > 10){
-      accuracyEl.textContent = `Precisión GPS: ±${acc} m (aceptable puertas adentro)`;
-      accuracyEl.style.color = 'var(--amber-dim)';
+      msg = `Precisión GPS: ±${acc} m (aceptable puertas adentro)`;
+      color = 'var(--amber-dim)';
     } else {
-      accuracyEl.textContent = `Precisión GPS: ±${acc} m`;
-      accuracyEl.style.color = 'var(--muted)';
+      msg = `Precisión GPS: ±${acc} m`;
+      color = 'var(--muted)';
     }
+    if(compassActive && !headingKnown){
+      msg += ' · Sin orientación del teléfono: la flecha no gira con vos, solo muestra el rumbo.';
+    }
+    accuracyEl.innerHTML = msg;
+    accuracyEl.style.color = color;
   }
 
   if(dist < arrivalThreshold){
@@ -980,6 +1206,7 @@ function recordSample(mbps){
 }
 
 async function doSample(){
+  if(document.hidden) return; // no gastar datos/batería midiendo en segundo plano
   try{
     const mbps = await miniSpeedTest(150000);
     compassDot.className = 'status-dot ok';
@@ -1194,6 +1421,7 @@ async function runDownloadPhase(durationMs, parallel, onTick){
     while(running && (performance.now() - t0) < durationMs){
       try{
         const resp = await fetch(`https://speed.cloudflare.com/__down?bytes=${SPEED_DOWN_CHUNK}&cachebust=${Math.random()}`, { signal: controller.signal });
+        if(!resp.ok || !resp.body) throw new Error('respuesta HTTP ' + resp.status);
         const reader = resp.body.getReader();
         while(running){
           const { done, value } = await reader.read();
@@ -1324,6 +1552,9 @@ speedBtn.addEventListener('click', async () => {
 
     speedDot.className = 'status-dot ok';
     speedNote.innerHTML = `Test completo (${(SPEED_DURATION_MS*2/1000)}s, ${SPEED_PARALLEL} conexiones paralelas, arranque descartado). Bajada: <b>${downResult.mbps.toFixed(1)} Mbps</b> · Subida: <b>${upResult.mbps.toFixed(1)} Mbps</b> · ${(grandTotalBytes/1e6).toFixed(0)} MB transferidos en total.`;
+
+    History.push('speed_down', downResult.mbps);
+    History.push('speed_up', upResult.mbps);
   }catch(err){
     speedDot.className = 'status-dot off';
     speedNote.innerHTML = `No se pudo completar el test (${err.message}). Revisá tu conexión e intentá de nuevo.`;
@@ -1531,11 +1762,8 @@ if(!navigator.bluetooth){
       const pct = Math.round(battery.level * 100);
       battLevel.textContent = pct + '%';
       battFill.style.width = pct + '%';
-      battFill.className = 'fill ' + (pct <= 20 ? 'low' : pct <= 50 ? 'mid' : '') ;
-      // reutiliza clases de battery-bar para el color si aplica, si no cae al teal por defecto
-      if(pct <= 20){ battFill.style.background = 'var(--red)'; }
-      else if(pct <= 50){ battFill.style.background = 'var(--amber)'; }
-      else { battFill.style.background = ''; }
+      battFill.className = 'fill ' + (pct <= 20 ? 'low' : pct <= 50 ? 'mid' : '');
+      battFill.style.background = ''; // el color lo define la clase, no un estilo en línea
 
       battStatus.textContent = battery.charging ? 'Cargando' : 'Sin cargar';
       battDot.className = 'status-dot ' + (battery.charging ? 'ok' : (pct <= 20 ? 'off' : 'warn'));
@@ -1546,6 +1774,7 @@ if(!navigator.bluetooth){
         battTime.textContent = fmtTime(battery.dischargingTime);
       }
       battNote.textContent = 'Fuente: Battery Status API, dato real reportado por el sistema operativo de tu equipo.';
+      History.push('battery_level', pct, 30000);
     }
 
     update();
@@ -1582,9 +1811,8 @@ if(!navigator.bluetooth){
 
   async function startSensor(){
     if(typeof Magnetometer === 'undefined'){
-      emNote.innerHTML = 'Este navegador no expone el magnetómetro crudo (<code>Magnetometer</code> / Generic Sensor API). Anda en <b>Chrome para Android</b>; no está disponible en iPhone ni en la mayoría de navegadores de escritorio.';
       emDot.className = 'status-dot off';
-      return;
+      return; // el mensaje ya quedó fijado una sola vez al cargar la página, más abajo
     }
 
     if(window.isSecureContext === false){
@@ -1625,6 +1853,7 @@ if(!navigator.bluetooth){
 
         const pctBar = Math.min(100, (magnitude / 150) * 100); // 150 µT como techo visual de referencia
         emFill.style.width = pctBar + '%';
+        History.push('em_deviation', Math.round(deviationPct), 8000);
 
         if(Math.abs(deviationPct) > 40){
           emFill.style.background = 'var(--red)';
@@ -1659,7 +1888,8 @@ if(!navigator.bluetooth){
   }
 
   if(typeof Magnetometer === 'undefined'){
-    emNote.innerHTML = 'Este navegador no expone el magnetómetro crudo. Anda en <b>Chrome para Android</b>; no disponible en iPhone.';
+    emNote.innerHTML = 'Este navegador no expone el magnetómetro crudo (<code>Magnetometer</code> / Generic Sensor API). Anda en <b>Chrome para Android</b>; no está disponible en iPhone ni en la mayoría de navegadores de escritorio.';
+    emDot.className = 'status-dot off';
   }
 
   emStartBtn.addEventListener('click', () => {
@@ -1723,6 +1953,7 @@ if(!navigator.bluetooth){
     noiseLabel.style.color = lvl.color;
     noisePeak.textContent = 'Pico: ' + Math.round(peakDb) + ' dB rel.';
     updateRing(pct, lvl.color);
+    History.push('noise_db', Math.round(dbClamped), 8000);
 
     rafId = requestAnimationFrame(tick);
   }
@@ -1786,10 +2017,19 @@ if(!navigator.bluetooth){
     noiseStartBtn.textContent = 'Activar micrófono';
     noiseDb.textContent = '—';
     noiseLabel.textContent = 'Sin medir';
-    noiseLabel.style.color = 'var(--amber)';
+    noiseLabel.style.color = 'var(--muted)';
     updateRing(0, 'var(--teal)');
     noiseNote.textContent = 'Micrófono apagado. Nada quedó grabado.';
   }
+
+  document.addEventListener('visibilitychange', () => {
+    if(!running) return;
+    if(document.hidden){
+      if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
+    } else if(!rafId){
+      tick();
+    }
+  });
 
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
     noiseStartBtn.disabled = true;
@@ -1827,6 +2067,7 @@ if(!navigator.bluetooth){
   document.getElementById('node-batt').addEventListener('click', () => goTo('panel-batt', null, null));
   document.getElementById('node-em').addEventListener('click', () => goTo('panel-em', 'em-start-btn', 'Iniciar detector'));
   document.getElementById('node-noise').addEventListener('click', () => goTo('panel-noise', 'noise-start-btn', 'Activar micrófono'));
+  document.getElementById('node-history').addEventListener('click', () => goTo('panel-history', null, null));
 
   // Sincroniza las luces de cada nodo con el estado real de cada panel
   function syncLed(sourceId, ledId){
@@ -1879,6 +2120,12 @@ if(!navigator.bluetooth){
       const v = document.getElementById('noise-db');
       const t = v ? v.textContent : '—';
       return (!t || t === '—') ? '—' : t + 'dB';
+    },
+    'live-history': () => {
+      if(typeof History === 'undefined') return '—';
+      const total = ['net_downlink','speed_down','noise_db','em_deviation','battery_level']
+        .reduce((sum, k) => sum + History.get(k).length, 0);
+      return total > 0 ? total + ' pts' : '—';
     }
   };
 
@@ -1897,6 +2144,7 @@ if(!navigator.bluetooth){
     syncLed('batt-dot', 'led-batt');
     syncLed('em-dot', 'led-em');
     syncLed('noise-dot', 'led-noise');
+    syncLed('history-dot', 'led-history');
     syncLiveValues();
   }, 800);
 
@@ -1918,6 +2166,56 @@ if(!navigator.bluetooth){
 
     consoleNote.innerHTML = 'Sistemas activos: Brújula y Detector EM corriendo, Velocidad midiendo 20s. <b>Bluetooth</b> lo tenés que activar aparte tocando su nodo (requiere elegir el dispositivo).';
   });
+})();
+
+// ---------- INSTALACIÓN (PWA) ----------
+(function initPWA(){
+  if('serviceWorker' in navigator && window.isSecureContext){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {
+        // Si falla (por ejemplo, corriendo desde file:// o una vista previa), la app
+        // sigue funcionando igual, solo que sin caché offline ni instalación.
+      });
+    });
+  }
+
+  let deferredPrompt = null;
+  const installBtn = document.getElementById('install-btn');
+  const installNote = document.getElementById('install-note');
+  if(!installBtn) return;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = 'block';
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if(!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    installNote.textContent = choice.outcome === 'accepted'
+      ? 'Instalado. Buscá el ícono "WiflyHi" en tu pantalla de inicio.'
+      : 'Instalación cancelada. Podés volver a intentarlo cuando quieras desde este botón.';
+    deferredPrompt = null;
+    installBtn.style.display = 'none';
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installBtn.style.display = 'none';
+    installNote.textContent = 'App instalada correctamente.';
+  });
+
+  // iOS/Safari no dispara beforeinstallprompt: instrucciones manuales.
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if(isIOS && !isStandalone){
+    installBtn.style.display = 'block';
+    installBtn.textContent = 'Cómo instalar en iPhone';
+    installBtn.addEventListener('click', () => {
+      installNote.innerHTML = 'En Safari: tocá el ícono de <b>Compartir</b> (el cuadrado con la flecha) y elegí <b>"Agregar a pantalla de inicio"</b>.';
+    });
+  }
 })();
 </script>
 </body>
