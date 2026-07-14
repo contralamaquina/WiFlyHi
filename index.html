@@ -223,10 +223,10 @@
     box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);
     transition:max-height 0.3s ease, opacity 0.25s ease, margin-top 0.3s ease;
   }
-  .transcript-box.show{max-height:280px; opacity:1; margin-top:10px;}
+  .transcript-box.show{max-height:380px; opacity:1; margin-top:10px;}
   .transcript-text{
     padding:10px 12px 4px; font-size:12px; line-height:1.65; color:var(--cream);
-    max-height:200px; overflow-y:auto; user-select:text; -webkit-user-select:text;
+    max-height:300px; overflow-y:auto; user-select:text; -webkit-user-select:text;
     white-space:pre-wrap; word-break:break-word;
   }
   .transcript-interim{
@@ -305,7 +305,7 @@
       <div class="transcript-text" id="transcript-text"></div>
       <div class="transcript-interim" id="transcript-interim"></div>
     </div>
-    <div class="note" id="transcribe-note">A diferencia del resto de Rastro, esto envía el audio al servicio de reconocimiento de voz del navegador (no es local). Funciona mejor en Chrome/Android; puede no estar disponible en Safari/iOS.</div>
+    <div class="note" id="transcribe-note">Pensado para guardar clases o conversaciones largas: el texto fluye seguido y solo separa en párrafos cuando hay una pausa real. A diferencia del resto de Rastro, esto envía el audio al servicio de reconocimiento de voz del navegador (no es local). Funciona mejor en Chrome/Android; puede no estar disponible en Safari/iOS.</div>
 
     <div id="map-slot-sonido"></div>
   </div>
@@ -869,6 +869,7 @@
   // ================= TRANSCRIPCIÓN DE VOZ =================
   const TRANSCRIPT_KEY = 'rastro_v1_transcript';
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  const PAUSE_BREAK_MS = 4000; // silencio > 4s entre frases => nuevo párrafo, no solo espacio
 
   const transcribeBtn = document.getElementById('transcribe-btn');
   const transcribeClearBtn = document.getElementById('transcribe-clear');
@@ -878,8 +879,10 @@
   const transcriptInterimEl = document.getElementById('transcript-interim');
   const DEFAULT_TRANSCRIBE_NOTE = transcribeNote.textContent;
 
-  let recognition = null;
-  let transcribing = false;
+  let recognition = null;       // instancia única, se reutiliza entre inicios/paradas
+  let transcribing = false;     // intención del usuario: ¿debería estar escuchando?
+  let sessionJustStarted = false;
+  let lastFinalTs = 0;
   let transcriptText = '';
 
   function loadTranscript(){
@@ -888,8 +891,11 @@
   function saveTranscript(){
     try{ localStorage.setItem(TRANSCRIPT_KEY, transcriptText); }catch(e){}
   }
-  function fmtTimeShort(ts){
-    return new Date(ts).toLocaleTimeString('es-UY', {hour:'2-digit', minute:'2-digit'});
+  function fmtSessionHeader(ts){
+    const d = new Date(ts);
+    const day = d.toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit'});
+    const time = d.toLocaleTimeString('es-UY', {hour:'2-digit', minute:'2-digit'});
+    return `— ${day} ${time} —`;
   }
 
   // La caja solo aparece cuando hay algo que mostrar (transcribiendo o con texto guardado).
@@ -901,9 +907,28 @@
     transcriptTextEl.scrollTop = transcriptTextEl.scrollHeight;
   }
 
-  function createRecognition(){
+  // Agrega una frase finalizada al texto, como prosa continua (no línea por línea),
+  // salvo que haya pasado una pausa larga, en cuyo caso arranca párrafo nuevo.
+  function appendFinal(line){
+    const now = Date.now();
+    if(!transcriptText){
+      transcriptText = fmtSessionHeader(now) + '\n' + line;
+    } else if(sessionJustStarted){
+      transcriptText += '\n\n' + fmtSessionHeader(now) + '\n' + line;
+    } else if(now - lastFinalTs > PAUSE_BREAK_MS){
+      transcriptText += '\n\n' + line;
+    } else {
+      transcriptText += ' ' + line;
+    }
+    sessionJustStarted = false;
+    lastFinalTs = now;
+    saveTranscript();
+  }
+
+  function ensureRecognition(){
+    if(recognition) return recognition;
     const r = new SpeechRec();
-    r.lang = 'es-419';
+    r.lang = 'es-UY';
     r.continuous = true;
     r.interimResults = true;
     r.onresult = (e) => {
@@ -912,10 +937,7 @@
         const res = e.results[i];
         if(res.isFinal){
           const line = res[0].transcript.trim();
-          if(line){
-            transcriptText += (transcriptText ? '\n' : '') + `[${fmtTimeShort(Date.now())}] ${line}`;
-            saveTranscript();
-          }
+          if(line) appendFinal(line);
         } else {
           interim += res[0].transcript;
         }
@@ -928,13 +950,17 @@
         transcribeNote.textContent = 'Permiso de micrófono denegado para la transcripción.';
         stopTranscribe();
       }
-      // otros errores (no-speech, network, aborted) se resuelven solos: onend va a reintentar
+      // no-speech / network / aborted: se resuelven solos, onend reinicia enseguida
     };
     r.onend = () => {
+      // El navegador corta la sesión de reconocimiento seguido (a veces después de cada
+      // frase, sobre todo en Android). Reiniciamos al toque para que se sienta continuo.
       if(transcribing){
-        try{ r.start(); }catch(e){}
+        try{ r.start(); }
+        catch(err){ setTimeout(() => { if(transcribing){ try{ r.start(); }catch(e2){} } }, 120); }
       }
     };
+    recognition = r;
     return r;
   }
 
@@ -943,9 +969,10 @@
       transcribeNote.textContent = 'Este navegador no soporta transcripción por voz (anda en Chrome/Android; no en Safari/iOS).';
       return;
     }
+    sessionJustStarted = transcriptText.length > 0; // si ya hay texto previo, marca nueva sesión
     transcribing = true;
-    recognition = createRecognition();
-    try{ recognition.start(); }catch(e){}
+    const r = ensureRecognition();
+    try{ r.start(); }catch(e){ /* ya puede estar corriendo */ }
     transcribeBtn.textContent = 'Detener transcripción';
     transcribeBtn.classList.add('active');
     transcribeNote.textContent = DEFAULT_TRANSCRIBE_NOTE;
@@ -957,7 +984,7 @@
   function stopTranscribe(){
     const wasTranscribing = transcribing;
     transcribing = false;
-    if(recognition){ try{ recognition.stop(); }catch(e){} recognition = null; }
+    if(recognition){ try{ recognition.stop(); }catch(e){} }
     transcribeBtn.textContent = 'Transcribir';
     transcribeBtn.classList.remove('active');
     transcriptInterimEl.textContent = '';
