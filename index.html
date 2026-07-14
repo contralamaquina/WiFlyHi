@@ -290,8 +290,12 @@
       linear-gradient(180deg, #24211b, #1c1a15);
   }
   .console-circle{
+    --circle-d: 300px;
+    --node-r: 130px;
+    --node-d: 76px;
+    --power-d: 104px;
     position:relative;
-    width:300px; height:300px;
+    width:var(--circle-d); height:var(--circle-d);
     margin:14px auto 10px;
   }
   .console-ring{
@@ -300,7 +304,7 @@
   }
   .console-power{
     position:absolute; top:50%; left:50%;
-    width:104px; height:104px; margin:-52px 0 0 -52px;
+    width:var(--power-d); height:var(--power-d); margin:calc(var(--power-d) / -2) 0 0 calc(var(--power-d) / -2);
     border-radius:50%;
     background: radial-gradient(circle at 32% 28%, #3c362c 0%, #17140f 72%);
     border:2px solid #4a4436;
@@ -328,8 +332,8 @@
   }
   .console-node{
     position:absolute; top:50%; left:50%;
-    width:76px; height:76px; margin:-38px 0 0 -38px;
-    transform: rotate(var(--a)) translate(130px) rotate(calc(-1 * var(--a)));
+    width:var(--node-d); height:var(--node-d); margin:calc(var(--node-d) / -2) 0 0 calc(var(--node-d) / -2);
+    transform: rotate(var(--a)) translate(var(--node-r)) rotate(calc(-1 * var(--a)));
     border-radius:50%;
     background: radial-gradient(circle at 30% 28%, #33302a, #1c1a15 75%);
     border:1px solid #4a4436;
@@ -344,6 +348,23 @@
     font-size:9.5px; font-weight:700; letter-spacing:0; text-transform:none;
     color:var(--teal); margin-top:1px; max-width:64px; overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap;
+  }
+
+  /* En pantallas angostas, el círculo se achica para que ningún nodo quede fuera
+     del panel (si no, los nodos de los costados quedaban sin poder tocarse en el celular). */
+  @media (max-width: 480px){
+    .console-circle{ --circle-d: 250px; --node-r: 108px; --node-d: 64px; --power-d: 88px; }
+    .console-power{ font-size:10.5px; }
+    .console-node{ font-size:6.8px; }
+    .console-node .node-ico{ font-size:13px; }
+    .console-node .node-live{ font-size:8.5px; max-width:52px; }
+  }
+  @media (max-width: 360px){
+    .console-circle{ --circle-d: 215px; --node-r: 92px; --node-d: 55px; --power-d: 76px; }
+    .console-power{ font-size:9px; padding:4px; }
+    .console-node{ font-size:6px; gap:0; }
+    .console-node .node-ico{ font-size:11px; }
+    .console-node .node-live{ font-size:7.5px; max-width:42px; }
   }
   .node-led{
     position:absolute; top:5px; right:5px; width:6px; height:6px; border-radius:50%;
