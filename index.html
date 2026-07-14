@@ -210,7 +210,10 @@
   .hist-item .tag.red{background:var(--teal); box-shadow:0 0 5px var(--teal-dim);}
   .hist-item .tag.sonido{background:var(--amber); box-shadow:0 0 5px #8a6a35;}
   .hist-item .tag.sistema{background:var(--muted);}
-  .hist-item .txt{flex:1; color:var(--cream);}
+  .hist-item .tag.transcripcion{background:var(--amber); box-shadow:0 0 5px #8a6a35;}
+  .hist-item .txt{flex:1; color:var(--cream); white-space:pre-wrap; word-break:break-word;}
+  .hist-item.transcripcion{align-items:flex-start;}
+  .hist-item .txt .transcript-label{display:block; font-size:9.5px; color:var(--muted); letter-spacing:0.6px; text-transform:uppercase; margin-bottom:3px;}
   .hist-item .time{flex-shrink:0; color:var(--muted); font-size:10px;}
   .hist-empty{color:var(--muted); font-size:11px; text-align:center; padding:24px 0;}
 
@@ -388,6 +391,10 @@
            d.toLocaleTimeString('es-UY', {hour:'2-digit', minute:'2-digit'});
   }
 
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
   function render(){
     histCount.textContent = History.items.length + ' evento' + (History.items.length === 1 ? '' : 's') + ' guardado' + (History.items.length === 1 ? '' : 's');
     if(History.items.length === 0){
@@ -395,9 +402,9 @@
       return;
     }
     histList.innerHTML = History.items.map(it => `
-      <div class="hist-item">
+      <div class="hist-item ${it.kind}">
         <span class="tag ${it.kind}"></span>
-        <span class="txt">${it.text}</span>
+        <span class="txt">${it.kind === 'transcripcion' ? '<span class="transcript-label">Transcripción</span>' : ''}${escapeHtml(it.text)}</span>
         <span class="time">${fmtTime(it.ts)}</span>
       </div>
     `).join('');
@@ -893,6 +900,7 @@
   let lastFinalTs = 0;
   let transcriptText = '';
   let currentInterim = '';      // lo que se está escuchando ahora, todavía sin confirmar
+  let sessionOnlyText = '';     // solo lo dicho desde el último "Transcribir" hasta ahora
 
   function loadTranscript(){
     try{ transcriptText = localStorage.getItem(TRANSCRIPT_KEY) || ''; }catch(e){ transcriptText = ''; }
@@ -923,14 +931,22 @@
   function appendFinal(line){
     if(!line) return;
     const now = Date.now();
+    const isNewParagraph = now - lastFinalTs > PAUSE_BREAK_MS;
     if(!transcriptText){
       transcriptText = fmtSessionHeader(now) + '\n' + line;
     } else if(sessionJustStarted){
       transcriptText += '\n\n' + fmtSessionHeader(now) + '\n' + line;
-    } else if(now - lastFinalTs > PAUSE_BREAK_MS){
+    } else if(isNewParagraph){
       transcriptText += '\n\n' + line;
     } else {
       transcriptText += ' ' + line;
+    }
+    if(!sessionOnlyText){
+      sessionOnlyText = line;
+    } else if(isNewParagraph){
+      sessionOnlyText += '\n\n' + line;
+    } else {
+      sessionOnlyText += ' ' + line;
     }
     sessionJustStarted = false;
     lastFinalTs = now;
@@ -997,6 +1013,7 @@
     sessionJustStarted = transcriptText.length > 0; // si ya hay texto previo, marca nueva sesión
     transcribing = true;
     currentInterim = '';
+    sessionOnlyText = '';
     const r = ensureRecognition();
     try{ r.start(); }catch(e){ /* ya puede estar corriendo */ }
     transcribeBtn.textContent = 'Detener transcripción';
@@ -1016,7 +1033,12 @@
     transcriptInterimEl.textContent = '';
     currentInterim = '';
     renderTranscript();
-    if(wasTranscribing) History.add('sonido', 'Transcripción de voz detenida.');
+    if(wasTranscribing){
+      const text = sessionOnlyText.trim();
+      if(text) History.add('transcripcion', text);
+      else History.add('sonido', 'Transcripción de voz detenida (sin texto capturado).');
+      sessionOnlyText = '';
+    }
   }
 
   transcribeBtn.addEventListener('click', () => {
