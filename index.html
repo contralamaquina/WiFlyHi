@@ -957,16 +957,23 @@ function updateNetwork(){
     return;
   }
 
-  const type = conn.type; // wifi, cellular, none, unknown...
-  const effectiveType = conn.effectiveType; // slow-2g, 2g, 3g, 4g
+  const type = conn.type; // wifi, cellular, ethernet, none, unknown... (muchos navegadores de escritorio no lo exponen, por privacidad)
+  const effectiveType = conn.effectiveType; // slow-2g, 2g, 3g, 4g — ESTO es una estimación de calidad/velocidad, no el tipo real de red
   const downlink = conn.downlink; // Mbps estimado
   const rtt = conn.rtt; // ms
   const saveData = conn.saveData;
 
-  let label = type ? type.toUpperCase() : (effectiveType ? effectiveType.toUpperCase() : 'DESCONOCIDO');
-  netType.textContent = label;
+  const TYPE_LABELS = {
+    wifi: 'WIFI', cellular: 'CELULAR', ethernet: 'ETHERNET',
+    bluetooth: 'BLUETOOTH', wimax: 'WIMAX', other: 'OTRA RED', none: 'SIN RED'
+  };
+  // "unknown" no cuenta como dato real: si el navegador no sabe, no inventamos una etiqueta.
+  const knownType = (type && TYPE_LABELS[type]) ? TYPE_LABELS[type] : null;
 
-  // nivel de barras en base a effectiveType + downlink
+  netType.textContent = knownType || 'CONECTADO';
+
+  // nivel de barras en base a effectiveType + downlink — esto sí es una medida de calidad/velocidad,
+  // por eso se usa para las barras de señal, nunca para el texto de "tipo de red".
   let level = 3, quality = 'warn';
   if(effectiveType === '4g' || downlink >= 5){ level = 5; quality = ''; }
   else if(effectiveType === '3g' || downlink >= 1.5){ level = 3; quality = 'warn'; }
@@ -980,7 +987,16 @@ function updateNetwork(){
   netRtt.textContent = rtt !== undefined ? Math.round(rtt) : '—';
   netSave.textContent = saveData ? 'ON' : 'OFF';
 
-  netNote.innerHTML = `Fuente: Network Information API. <b>${effectiveType ? effectiveType.toUpperCase() : '—'}</b> efectivo. Estos valores son estimaciones del navegador, no dBm real.`;
+  let note;
+  if(knownType){
+    note = `Fuente: Network Information API. Tipo real de red: <b>${knownType}</b>.`;
+    if(effectiveType) note += ` Calidad estimada equivalente a <b>${effectiveType.toUpperCase()}</b> (habla de velocidad/latencia, no cambia el tipo de conexión).`;
+  } else {
+    note = 'Tu navegador no expone si estás en wifi, ethernet o datos móviles (Chrome de escritorio lo oculta por privacidad).';
+    if(effectiveType) note += ` Solo puede estimar la <b>calidad</b> de la conexión, que ahora mismo equivale a "${effectiveType.toUpperCase()}" — es una medida de velocidad/latencia, <b>no significa que estés en red celular</b>.`;
+  }
+  note += ' Estos valores son estimaciones del navegador, no dBm real.';
+  netNote.innerHTML = note;
 
   if(downlink !== undefined) History.push('net_downlink', downlink, 15000);
 }
