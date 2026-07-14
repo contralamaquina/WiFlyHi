@@ -144,6 +144,42 @@
 
   .note{font-size:10.5px; color:var(--muted); line-height:1.5; margin-top:8px; border-top:1px dashed var(--line); padding-top:8px;}
 
+  /* ---- Test de velocidad real ---- */
+  .speed-block{background:var(--ink); border-radius:6px; padding:12px; margin-bottom:10px; box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);}
+  .speed-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:8px;}
+  .speed-head .lbl{font-size:11px; color:var(--muted); letter-spacing:0.6px; text-transform:uppercase;}
+  .btn-run{
+    background:linear-gradient(180deg, #3a352c, #2a2620); color:var(--cream); border:1px solid var(--line);
+    border-radius:6px; padding:8px 14px; font-size:11px; letter-spacing:0.6px; text-transform:uppercase;
+    cursor:pointer; font-family:inherit; font-weight:600;
+  }
+  .btn-run:disabled{opacity:0.55; cursor:default;}
+  .btn-run.busy{color:var(--amber); border-color:#8a6a35;}
+
+  .plan-row{display:flex; gap:8px; margin-bottom:10px;}
+  .plan-field{flex:1;}
+  .plan-field label{display:block; font-size:9px; color:var(--muted); letter-spacing:0.6px; text-transform:uppercase; margin-bottom:4px;}
+  .plan-field input{
+    width:100%; background:var(--bg); border:1px solid var(--line); border-radius:5px;
+    color:var(--cream); font-family:inherit; font-size:12px; padding:7px 8px;
+  }
+  .plan-field input:focus{outline:none; border-color:var(--teal-dim);}
+
+  .speed-progress{height:8px; border-radius:4px; background:#111; overflow:hidden; margin-bottom:8px; display:none;}
+  .speed-progress.show{display:block;}
+  .speed-progress i{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--teal), var(--amber)); transition:width 0.15s linear;}
+  .speed-status{font-size:10.5px; color:var(--muted); margin-bottom:10px; min-height:14px;}
+
+  .speed-results{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .speed-card{background:var(--bg); border-radius:6px; padding:10px;}
+  .speed-card .dir{font-size:9px; color:var(--muted); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:4px;}
+  .speed-card .val{font-family:'Big Shoulders Text', sans-serif; font-weight:700; font-size:22px; color:var(--cream); line-height:1;}
+  .speed-card .val span{font-size:11px; color:var(--muted); font-family:'IBM Plex Mono', monospace; font-weight:400;}
+  .speed-card .cmp{font-size:10px; margin-top:5px; font-weight:600;}
+  .speed-card .cmp.ok{color:var(--teal);}
+  .speed-card .cmp.mid{color:var(--amber);}
+  .speed-card .cmp.bad{color:var(--red);}
+
   /* ---- Mapa de señal ---- */
   .map-wrap{position:relative; border-radius:8px; overflow:hidden; margin-bottom:10px; border:1px solid var(--line);}
   #signal-map{height:260px; width:100%; background:var(--ink);}
@@ -154,7 +190,17 @@
   .map-legend{display:flex; gap:14px; margin-top:8px; font-size:10px; color:var(--muted); flex-wrap:wrap;}
   .map-legend span{display:flex; align-items:center; gap:5px;}
   .map-legend i{width:8px; height:8px; border-radius:50%; display:inline-block;}
-  .map-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .map-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:8px;}
+  .map-block{margin-bottom:14px;}
+  .map-sub{font-size:9.5px; color:var(--muted); letter-spacing:0.6px; text-transform:uppercase; margin:-6px 0 10px;}
+
+  .layer-toggle{display:flex; gap:4px; background:var(--ink); border-radius:6px; padding:3px;}
+  .layer-btn{
+    border:none; background:transparent; color:var(--muted); font-family:inherit;
+    font-size:10px; letter-spacing:0.5px; text-transform:uppercase; padding:5px 9px;
+    border-radius:4px; cursor:pointer;
+  }
+  .layer-btn.active{background:var(--bg-plate); color:var(--cream);}
 
   /* ---- Historial ---- */
   .hist-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
@@ -180,6 +226,26 @@
   .hist-item .txt{flex:1; color:var(--cream);}
   .hist-item .time{flex-shrink:0; color:var(--muted); font-size:10px;}
   .hist-empty{color:var(--muted); font-size:11px; text-align:center; padding:24px 0;}
+
+  /* ---- Transcripción de voz ---- */
+  .transcribe-head{display:flex; align-items:center; gap:8px; margin-top:12px;}
+  .btn-mini.toggle.active{color:var(--teal); border-color:var(--teal-dim);}
+  .transcript-box{
+    max-height:0; opacity:0; overflow:hidden; margin-top:0;
+    background:var(--ink); border-radius:6px;
+    box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);
+    transition:max-height 0.3s ease, opacity 0.25s ease, margin-top 0.3s ease;
+  }
+  .transcript-box.show{max-height:280px; opacity:1; margin-top:10px;}
+  .transcript-text{
+    padding:10px 12px 4px; font-size:12px; line-height:1.65; color:var(--cream);
+    max-height:200px; overflow-y:auto; user-select:text; -webkit-user-select:text;
+    white-space:pre-wrap; word-break:break-word;
+  }
+  .transcript-interim{
+    padding:0 12px 10px; font-size:11.5px; color:var(--muted); font-style:italic;
+    white-space:pre-wrap; min-height:14px;
+  }
 </style>
 </head>
 <body>
@@ -205,19 +271,8 @@
 
   <!-- RED -->
   <div class="panel active" id="panel-red">
-    <div class="map-head">
-      <div class="panel-title" style="margin-bottom:0;">Red</div>
-      <button class="btn-mini" id="map-clear">Borrar mapa</button>
-    </div>
-    <div class="map-wrap">
-      <div class="map-placeholder" id="map-placeholder">El mapa se carga cuando activás el registro (necesita permiso de ubicación).</div>
-      <div id="signal-map" style="display:none;"></div>
-    </div>
-    <div class="map-legend">
-      <span><i style="background:var(--teal)"></i>Buena</span>
-      <span><i style="background:var(--amber)"></i>Regular</span>
-      <span><i style="background:var(--red)"></i>Mala / sin señal</span>
-    </div>
+    <div class="panel-title">Red</div>
+    <div id="map-slot-red"></div>
     <div class="metrics">
       <div class="metric"><div class="v" id="net-online">—</div><div class="k">Estado</div></div>
       <div class="metric"><div class="v" id="net-type">—</div><div class="k">Tipo de conexión</div></div>
@@ -225,6 +280,37 @@
       <div class="metric"><div class="v" id="net-rtt">—</div><div class="k">Latencia (rtt)</div></div>
     </div>
     <div class="note" id="net-note">Esperando datos del navegador. Algunos datos (tipo de red, velocidad, rtt) solo están disponibles en Chrome/Android; en iPhone/Safari solo vas a ver conectado/desconectado.</div>
+
+    <div class="speed-block">
+      <div class="speed-head">
+        <span class="lbl">Test de velocidad real</span>
+        <button class="btn-run" id="speed-run">Medir ahora</button>
+      </div>
+      <div class="plan-row">
+        <div class="plan-field">
+          <label for="plan-down">Contratado ↓ (Mbps)</label>
+          <input type="number" id="plan-down" inputmode="decimal" min="0" step="0.1" placeholder="ej: 100">
+        </div>
+        <div class="plan-field">
+          <label for="plan-up">Contratado ↑ (Mbps)</label>
+          <input type="number" id="plan-up" inputmode="decimal" min="0" step="0.1" placeholder="ej: 50">
+        </div>
+      </div>
+      <div class="speed-progress" id="speed-progress"><i id="speed-progress-fill"></i></div>
+      <div class="speed-status" id="speed-status">Todavía no mediste. El test baja y sube unos MB de datos reales — usá wifi si tenés datos limitados.</div>
+      <div class="speed-results">
+        <div class="speed-card">
+          <div class="dir">Bajada</div>
+          <div class="val" id="speed-down-val">—<span> Mbps</span></div>
+          <div class="cmp" id="speed-down-cmp"></div>
+        </div>
+        <div class="speed-card">
+          <div class="dir">Subida</div>
+          <div class="val" id="speed-up-val">—<span> Mbps</span></div>
+          <div class="cmp" id="speed-up-cmp"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- SONIDO -->
@@ -234,7 +320,40 @@
       <div class="meter-bar"><div class="meter-fill" id="sonido-fill"></div></div>
       <div class="meter-label"><span id="sonido-cat">Sin medir</span><b id="sonido-db">—</b></div>
     </div>
-    <div class="note" id="sonido-note">El micrófono se activa junto con el botón de registro. Nada se graba ni se guarda como audio, solo el nivel en dB.</div>
+    <div class="note" id="sonido-note">El micrófono se activa junto con el botón de registro. Nada se graba ni se guarda como audio, solo el nivel en dB. Cada punto que se agrega al mapa mientras te movés guarda también el nivel de sonido de ese momento — tocá "Sonido" en el mapa para verlo.</div>
+
+    <div class="transcribe-head">
+      <button class="btn-mini toggle" id="transcribe-btn">Transcribir</button>
+      <button class="btn-mini" id="transcribe-clear" style="display:none;">Limpiar</button>
+    </div>
+    <div class="transcript-box" id="transcript-box">
+      <div class="transcript-text" id="transcript-text"></div>
+      <div class="transcript-interim" id="transcript-interim"></div>
+    </div>
+    <div class="note" id="transcribe-note">A diferencia del resto de Rastro, esto envía el audio al servicio de reconocimiento de voz del navegador (no es local). Funciona mejor en Chrome/Android; puede no estar disponible en Safari/iOS.</div>
+
+    <div id="map-slot-sonido"></div>
+  </div>
+
+  <!-- BLOQUE DE MAPA COMPARTIDO (se mueve entre Red y Sonido según la pestaña activa) -->
+  <div class="map-block" id="map-block">
+    <div class="map-head">
+      <div class="layer-toggle" id="layer-toggle">
+        <button class="layer-btn active" data-layer="signal">Señal</button>
+        <button class="layer-btn" data-layer="sound">Sonido</button>
+      </div>
+      <button class="btn-mini" id="map-clear">Borrar mapa</button>
+    </div>
+    <div class="map-sub">Un mismo mapa, dos capas: elegí qué dato colorea cada punto registrado.</div>
+    <div class="map-wrap">
+      <div class="map-placeholder" id="map-placeholder">El mapa se carga cuando activás el registro (necesita permiso de ubicación).</div>
+      <div id="signal-map" style="display:none;"></div>
+    </div>
+    <div class="map-legend" id="map-legend">
+      <span><i style="background:var(--teal)"></i>Buena</span>
+      <span><i style="background:var(--amber)"></i>Regular</span>
+      <span><i style="background:var(--red)"></i>Mala / sin señal</span>
+    </div>
   </div>
 
   <!-- HISTORIAL -->
@@ -313,10 +432,24 @@
     if(confirm('¿Borrar todo el historial guardado en este teléfono?')) History.clear();
   });
 
-  // ================= MAPA DE SEÑAL =================
+  // ================= MAPA (compartido entre Red y Sonido, dos capas) =================
+  const LEGENDS = {
+    signal: `
+      <span><i style="background:var(--teal)"></i>Buena</span>
+      <span><i style="background:var(--amber)"></i>Regular</span>
+      <span><i style="background:var(--red)"></i>Mala / sin señal</span>
+    `,
+    sound: `
+      <span><i style="background:var(--teal)"></i>Silencio</span>
+      <span><i style="background:var(--amber)"></i>Ruido moderado</span>
+      <span><i style="background:var(--red)"></i>Ruido fuerte</span>
+      <span><i style="background:var(--muted)"></i>Sin datos de sonido</span>
+    `
+  };
+
   const MapModule = (function(){
     const STORAGE_KEY = 'rastro_v1_map';
-    let map = null, points = [];
+    let map = null, points = [], markers = [], layer = 'signal';
 
     function load(){
       try{ points = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }catch(e){ points = []; }
@@ -324,14 +457,41 @@
     function save(){
       try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(points)); }catch(e){}
     }
-    function colorFor(q){
+    function colorForSignal(q){
       return q === 'buena' ? '#4a9b8e' : q === 'regular' ? '#e0a84a' : '#c1594d';
+    }
+    function colorForSound(cat){
+      if(cat === 'silencio') return '#4a9b8e';
+      if(cat === 'moderado') return '#e0a84a';
+      if(cat === 'fuerte') return '#c1594d';
+      return '#9c9182'; // sin datos de sonido en ese punto
+    }
+    function colorFor(p){
+      return layer === 'sound' ? colorForSound(p.soundCat) : colorForSignal(p.netQ);
     }
     function drawPoint(p){
       if(!map) return;
-      L.circleMarker([p.lat, p.lng], {
-        radius:6, color:colorFor(p.q), fillColor:colorFor(p.q), fillOpacity:0.85, weight:1
+      const m = L.circleMarker([p.lat, p.lng], {
+        radius:6, color:colorFor(p), fillColor:colorFor(p), fillOpacity:0.85, weight:1
       }).addTo(map);
+      markers.push(m);
+      return m;
+    }
+    function redrawAll(){
+      markers.forEach(m => map && map.removeLayer(m));
+      markers = [];
+      points.forEach(drawPoint);
+    }
+    function updateLegend(){
+      const el = document.getElementById('map-legend');
+      if(el) el.innerHTML = LEGENDS[layer];
+    }
+    function setLayer(l){
+      if(layer === l) return;
+      layer = l;
+      document.querySelectorAll('.layer-btn').forEach(b => b.classList.toggle('active', b.dataset.layer === l));
+      updateLegend();
+      redrawAll();
     }
     function init(lat, lng){
       if(map) return;
@@ -342,11 +502,12 @@
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom:19, attribution:'© OpenStreetMap'
       }).addTo(map);
-      points.forEach(drawPoint);
+      redrawAll();
+      updateLegend();
       setTimeout(() => map.invalidateSize(), 200);
     }
-    function addPoint(lat, lng, q){
-      const p = { lat, lng, q, ts: Date.now() };
+    function addPoint(lat, lng, netQ, soundCat){
+      const p = { lat, lng, netQ, soundCat: soundCat || null, ts: Date.now() };
       points.push(p);
       save();
       drawPoint(p);
@@ -355,9 +516,8 @@
     function clearAll(){
       points = [];
       save();
-      if(map){
-        map.eachLayer(l => { if(l instanceof L.CircleMarker) map.removeLayer(l); });
-      }
+      markers.forEach(m => map && map.removeLayer(m));
+      markers = [];
     }
     function panTo(lat, lng){
       if(map) map.panTo([lat, lng]);
@@ -366,14 +526,25 @@
       if(map) map.invalidateSize();
     }
     load();
-    return { init, addPoint, clearAll, panTo, invalidate, get initialized(){ return !!map; } };
+    return { init, addPoint, clearAll, panTo, invalidate, setLayer, get initialized(){ return !!map; } };
   })();
 
   document.getElementById('map-clear').addEventListener('click', () => {
-    if(confirm('¿Borrar todos los puntos guardados en el mapa?')) MapModule.clearAll();
+    if(confirm('¿Borrar todos los puntos guardados en el mapa (señal y sonido)?')) MapModule.clearAll();
+  });
+
+  document.getElementById('layer-toggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('.layer-btn');
+    if(!btn) return;
+    MapModule.setLayer(btn.dataset.layer);
   });
 
   // ================= TABS =================
+  const mapBlock = document.getElementById('map-block');
+  const slotRed = document.getElementById('map-slot-red');
+  const slotSonido = document.getElementById('map-slot-sonido');
+  slotRed.appendChild(mapBlock); // ubicación inicial
+
   const tabs = document.querySelectorAll('.tab');
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -381,7 +552,14 @@
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById(tab.dataset.panel).classList.add('active');
-      if(tab.dataset.panel === 'panel-red') MapModule.invalidate();
+
+      if(tab.dataset.panel === 'panel-red'){
+        slotRed.appendChild(mapBlock);
+        MapModule.invalidate();
+      } else if(tab.dataset.panel === 'panel-sonido'){
+        slotSonido.appendChild(mapBlock);
+        MapModule.invalidate();
+      }
     });
   });
 
@@ -449,6 +627,150 @@
   }
   updateNetDisplay(false);
 
+  // ================= TEST DE VELOCIDAD REAL (bajada / subida) =================
+  const PLAN_KEY = 'rastro_v1_plan';
+  const planDownInput = document.getElementById('plan-down');
+  const planUpInput = document.getElementById('plan-up');
+  const speedRunBtn = document.getElementById('speed-run');
+  const speedStatus = document.getElementById('speed-status');
+  const speedProgress = document.getElementById('speed-progress');
+  const speedProgressFill = document.getElementById('speed-progress-fill');
+  const speedDownVal = document.getElementById('speed-down-val');
+  const speedUpVal = document.getElementById('speed-up-val');
+  const speedDownCmp = document.getElementById('speed-down-cmp');
+  const speedUpCmp = document.getElementById('speed-up-cmp');
+
+  function loadPlan(){
+    try{
+      const p = JSON.parse(localStorage.getItem(PLAN_KEY)) || {};
+      if(p.down) planDownInput.value = p.down;
+      if(p.up) planUpInput.value = p.up;
+    }catch(e){}
+  }
+  function savePlan(){
+    try{
+      localStorage.setItem(PLAN_KEY, JSON.stringify({ down: planDownInput.value, up: planUpInput.value }));
+    }catch(e){}
+  }
+  loadPlan();
+  planDownInput.addEventListener('change', savePlan);
+  planUpInput.addEventListener('change', savePlan);
+
+  function connLabel(){
+    if(conn && conn.type && conn.type !== 'unknown') return conn.type === 'wifi' ? 'wifi' : conn.type;
+    if(conn && conn.effectiveType) return conn.effectiveType;
+    return null;
+  }
+
+  function cmpClass(ratio){
+    if(ratio >= 0.8) return 'ok';
+    if(ratio >= 0.5) return 'mid';
+    return 'bad';
+  }
+  function renderCmp(el, measured, planStr){
+    const plan = parseFloat(planStr);
+    if(!plan || plan <= 0){ el.textContent = ''; el.className = 'cmp'; return; }
+    const ratio = measured / plan;
+    const pct = Math.round(ratio * 100);
+    el.textContent = pct + '% de lo contratado (' + plan + ' Mbps)';
+    el.className = 'cmp ' + cmpClass(ratio);
+  }
+
+  // Mide bajada leyendo el stream en vivo para poder mostrar progreso real.
+  async function measureDownload(bytes, onTick){
+    const url = `https://speed.cloudflare.com/__down?bytes=${bytes}&cachebust=${Date.now()}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    const t0 = performance.now();
+    const res = await fetch(url, { cache:'no-store', signal: controller.signal });
+    if(!res.ok || !res.body) throw new Error('Respuesta inválida del servidor de medición');
+    const reader = res.body.getReader();
+    let received = 0;
+    while(true){
+      const { done, value } = await reader.read();
+      if(done) break;
+      received += value.length;
+      const elapsed = (performance.now() - t0) / 1000;
+      if(onTick) onTick(received / bytes, elapsed > 0 ? (received * 8 / elapsed / 1e6) : 0);
+    }
+    clearTimeout(timeout);
+    const totalSeconds = (performance.now() - t0) / 1000;
+    return (received * 8 / totalSeconds) / 1e6; // Mbps
+  }
+
+  // Mide subida con XHR para tener progreso real de envío.
+  function measureUpload(bytes, onTick){
+    return new Promise((resolve, reject) => {
+      const data = new Uint8Array(bytes);
+      const xhr = new XMLHttpRequest();
+      const t0 = performance.now();
+      xhr.open('POST', `https://speed.cloudflare.com/__up?cachebust=${Date.now()}`);
+      xhr.timeout = 20000;
+      xhr.upload.onprogress = (e) => {
+        const elapsed = (performance.now() - t0) / 1000;
+        const sent = e.lengthComputable ? e.loaded : 0;
+        if(onTick) onTick(sent / bytes, elapsed > 0 ? (sent * 8 / elapsed / 1e6) : 0);
+      };
+      xhr.onload = () => {
+        const totalSeconds = (performance.now() - t0) / 1000;
+        resolve((bytes * 8 / totalSeconds) / 1e6);
+      };
+      xhr.onerror = () => reject(new Error('Falló la subida de prueba'));
+      xhr.ontimeout = () => reject(new Error('La subida de prueba tardó demasiado'));
+      xhr.send(data);
+    });
+  }
+
+  let speedTesting = false;
+  speedRunBtn.addEventListener('click', async () => {
+    if(speedTesting) return;
+    if(!navigator.onLine){
+      speedStatus.textContent = 'Sin conexión: no se puede medir la velocidad ahora.';
+      return;
+    }
+    speedTesting = true;
+    speedRunBtn.disabled = true;
+    speedRunBtn.classList.add('busy');
+    speedRunBtn.textContent = 'Midiendo…';
+    speedProgress.classList.add('show');
+    speedProgressFill.style.width = '0%';
+
+    const DOWN_BYTES = 8 * 1000 * 1000;  // ~8MB
+    const UP_BYTES = 4 * 1000 * 1000;    // ~4MB
+    const label = connLabel();
+
+    try{
+      speedStatus.textContent = 'Midiendo bajada…';
+      const downMbps = await measureDownload(DOWN_BYTES, (frac, liveMbps) => {
+        speedProgressFill.style.width = Math.min(100, frac * 50) + '%';
+        speedDownVal.innerHTML = liveMbps.toFixed(1) + '<span> Mbps</span>';
+      });
+      speedDownVal.innerHTML = downMbps.toFixed(1) + '<span> Mbps</span>';
+      renderCmp(speedDownCmp, downMbps, planDownInput.value);
+
+      speedStatus.textContent = 'Midiendo subida…';
+      const upMbps = await measureUpload(UP_BYTES, (frac, liveMbps) => {
+        speedProgressFill.style.width = (50 + Math.min(100, frac * 50)) + '%';
+        speedUpVal.innerHTML = liveMbps.toFixed(1) + '<span> Mbps</span>';
+      });
+      speedUpVal.innerHTML = upMbps.toFixed(1) + '<span> Mbps</span>';
+      renderCmp(speedUpCmp, upMbps, planUpInput.value);
+
+      speedProgressFill.style.width = '100%';
+      const tag = label ? ` (${label})` : '';
+      speedStatus.textContent = `Última medición: ↓${downMbps.toFixed(1)} Mbps · ↑${upMbps.toFixed(1)} Mbps${tag}.`;
+      History.add('red', `Test de velocidad${tag}: ↓${downMbps.toFixed(1)} Mbps / ↑${upMbps.toFixed(1)} Mbps.`);
+    }catch(err){
+      speedStatus.textContent = 'No se pudo completar la medición: ' + err.message;
+    }finally{
+      setTimeout(() => { speedProgress.classList.remove('show'); speedProgressFill.style.width = '0%'; }, 600);
+      speedTesting = false;
+      speedRunBtn.disabled = false;
+      speedRunBtn.classList.remove('busy');
+      speedRunBtn.textContent = 'Medir ahora';
+    }
+  });
+
   // ---- Calidad de señal (para colorear el mapa) ----
   function signalQuality(){
     if(!navigator.onLine) return 'mala';
@@ -484,11 +806,12 @@
 
     if(movedEnough && enoughTimePassed){
       const q = signalQuality();
-      MapModule.addPoint(lat, lng, q);
+      MapModule.addPoint(lat, lng, q, currentSoundKey);
       lastGeoPointTs = now;
       lastGeoCoords = { lat, lng };
       if(q !== lastGeoQuality){
-        History.add('red', `Punto de mapa: señal ${q}.`);
+        const soundTxt = currentSoundKey ? ` · sonido: ${currentSoundKey}` : '';
+        History.add('red', `Punto de mapa: señal ${q}${soundTxt}.`);
         lastGeoQuality = q;
       }
     }
@@ -518,11 +841,17 @@
 
   let audioCtx = null, analyser = null, micStream = null, rafId = null;
   let lastLogTs = 0, lastCategory = null;
+  let currentSoundKey = null; // 'silencio' | 'moderado' | 'fuerte' — leído por el mapa para colorear puntos
 
   function categoryFor(db){
     if(db < 40) return 'Silencio';
     if(db < 65) return 'Ruido moderado';
     return 'Ruido fuerte';
+  }
+  function categoryKeyFor(db){
+    if(db < 40) return 'silencio';
+    if(db < 65) return 'moderado';
+    return 'fuerte';
   }
 
   function tickAudio(){
@@ -541,6 +870,7 @@
     sonidoDb.textContent = db;
     const cat = categoryFor(db);
     sonidoCat.textContent = cat;
+    currentSoundKey = categoryKeyFor(db);
 
     const now = Date.now();
     // Log cuando cambia de categoría (con un mínimo de 8s entre logs para no inundar el historial)
@@ -581,6 +911,7 @@
     if(micStream){ micStream.getTracks().forEach(t => t.stop()); micStream = null; }
     if(audioCtx){ audioCtx.close(); audioCtx = null; }
     analyser = null;
+    currentSoundKey = null;
     sonidoFill.style.width = '0%';
     sonidoDb.textContent = '—';
     sonidoCat.textContent = 'Sin medir';
@@ -596,6 +927,121 @@
       tickAudio();
     }
   });
+
+  // ================= TRANSCRIPCIÓN DE VOZ =================
+  const TRANSCRIPT_KEY = 'rastro_v1_transcript';
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+
+  const transcribeBtn = document.getElementById('transcribe-btn');
+  const transcribeClearBtn = document.getElementById('transcribe-clear');
+  const transcribeNote = document.getElementById('transcribe-note');
+  const transcriptBox = document.getElementById('transcript-box');
+  const transcriptTextEl = document.getElementById('transcript-text');
+  const transcriptInterimEl = document.getElementById('transcript-interim');
+  const DEFAULT_TRANSCRIBE_NOTE = transcribeNote.textContent;
+
+  let recognition = null;
+  let transcribing = false;
+  let transcriptText = '';
+
+  function loadTranscript(){
+    try{ transcriptText = localStorage.getItem(TRANSCRIPT_KEY) || ''; }catch(e){ transcriptText = ''; }
+  }
+  function saveTranscript(){
+    try{ localStorage.setItem(TRANSCRIPT_KEY, transcriptText); }catch(e){}
+  }
+  function fmtTimeShort(ts){
+    return new Date(ts).toLocaleTimeString('es-UY', {hour:'2-digit', minute:'2-digit'});
+  }
+
+  // La caja solo aparece cuando hay algo que mostrar (transcribiendo o con texto guardado).
+  function renderTranscript(){
+    transcriptTextEl.textContent = transcriptText;
+    const hasText = transcriptText.trim().length > 0;
+    transcribeClearBtn.style.display = hasText ? 'inline-block' : 'none';
+    transcriptBox.classList.toggle('show', hasText || transcribing);
+    transcriptTextEl.scrollTop = transcriptTextEl.scrollHeight;
+  }
+
+  function createRecognition(){
+    const r = new SpeechRec();
+    r.lang = 'es-419';
+    r.continuous = true;
+    r.interimResults = true;
+    r.onresult = (e) => {
+      let interim = '';
+      for(let i = e.resultIndex; i < e.results.length; i++){
+        const res = e.results[i];
+        if(res.isFinal){
+          const line = res[0].transcript.trim();
+          if(line){
+            transcriptText += (transcriptText ? '\n' : '') + `[${fmtTimeShort(Date.now())}] ${line}`;
+            saveTranscript();
+          }
+        } else {
+          interim += res[0].transcript;
+        }
+      }
+      transcriptInterimEl.textContent = interim || (transcribing ? 'Escuchando…' : '');
+      renderTranscript();
+    };
+    r.onerror = (e) => {
+      if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+        transcribeNote.textContent = 'Permiso de micrófono denegado para la transcripción.';
+        stopTranscribe();
+      }
+      // otros errores (no-speech, network, aborted) se resuelven solos: onend va a reintentar
+    };
+    r.onend = () => {
+      if(transcribing){
+        try{ r.start(); }catch(e){}
+      }
+    };
+    return r;
+  }
+
+  function startTranscribe(){
+    if(!SpeechRec){
+      transcribeNote.textContent = 'Este navegador no soporta transcripción por voz (anda en Chrome/Android; no en Safari/iOS).';
+      return;
+    }
+    transcribing = true;
+    recognition = createRecognition();
+    try{ recognition.start(); }catch(e){}
+    transcribeBtn.textContent = 'Detener transcripción';
+    transcribeBtn.classList.add('active');
+    transcribeNote.textContent = DEFAULT_TRANSCRIBE_NOTE;
+    transcriptInterimEl.textContent = 'Escuchando…';
+    renderTranscript();
+    History.add('sonido', 'Transcripción de voz iniciada.');
+  }
+
+  function stopTranscribe(){
+    const wasTranscribing = transcribing;
+    transcribing = false;
+    if(recognition){ try{ recognition.stop(); }catch(e){} recognition = null; }
+    transcribeBtn.textContent = 'Transcribir';
+    transcribeBtn.classList.remove('active');
+    transcriptInterimEl.textContent = '';
+    renderTranscript();
+    if(wasTranscribing) History.add('sonido', 'Transcripción de voz detenida.');
+  }
+
+  transcribeBtn.addEventListener('click', () => {
+    if(transcribing) stopTranscribe(); else startTranscribe();
+  });
+
+  transcribeClearBtn.addEventListener('click', () => {
+    if(confirm('¿Borrar todo el texto transcripto guardado en este teléfono?')){
+      transcriptText = '';
+      saveTranscript();
+      renderTranscript();
+    }
+  });
+
+  loadTranscript();
+  renderTranscript();
+  if(!SpeechRec) transcribeNote.textContent = 'Este navegador no soporta transcripción por voz (anda en Chrome/Android; no en Safari/iOS).';
 
   // ================= BOTÓN MAESTRO =================
   const powerBtn = document.getElementById('power-btn');
@@ -625,6 +1071,7 @@
       stopMic();
       stopNetMonitor();
       stopGeoWatch();
+      stopTranscribe();
       active = false;
       powerBtn.classList.remove('on');
       powerBtn.innerHTML = 'Activar<br>registro';
